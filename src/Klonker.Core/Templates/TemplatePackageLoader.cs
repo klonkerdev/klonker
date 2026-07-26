@@ -11,6 +11,7 @@ namespace Klonker.Core.Templates;
 public static partial class TemplatePackageLoader
 {
     public const int SupportedSchemaVersion = 0;
+    private const long MaximumLogoBytes = 5 * 1024 * 1024;
 
     public static OperationResult<TemplatePackage> Load(string packageRoot)
     {
@@ -50,6 +51,9 @@ public static partial class TemplatePackageLoader
         var sourceFiles = Directory.Exists(contentPath)
             ? EnumerateContent(contentPath, issues)
             : [];
+        var logoPath = manifest?.Logo is null
+            ? null
+            : ResolveLogoPath(fullRoot, manifest.Logo, issues);
 
         if (manifest is null || issues.Any(issue => issue.Severity == ValidationSeverity.Error))
         {
@@ -57,7 +61,7 @@ public static partial class TemplatePackageLoader
         }
 
         return new OperationResult<TemplatePackage>(
-            new TemplatePackage(fullRoot, contentPath, manifest, sourceFiles),
+            new TemplatePackage(fullRoot, contentPath, manifest, sourceFiles, logoPath),
             issues);
     }
 
@@ -89,6 +93,10 @@ public static partial class TemplatePackageLoader
         var targetOs = GetString(table, "target_os", issues);
         var buildSystem = GetString(table, "build_system", issues);
         var sourceLicense = GetString(table, "source_license", issues);
+        var logo = GetOptionalNonEmptyString(table, "logo", issues);
+        var tags = ParseTags(table, issues);
+        var isFavorite = GetOptionalBoolean(table, "favorite", issues) ?? false;
+        var prerequisites = ParsePrerequisites(table, issues);
 
         if (schemaVersion is not null && schemaVersion != SupportedSchemaVersion)
         {
@@ -115,7 +123,132 @@ public static partial class TemplatePackageLoader
             targetOs!,
             buildSystem!,
             sourceLicense!,
-            parameters);
+            parameters,
+            logo,
+            tags,
+            isFavorite,
+            prerequisites);
+    }
+
+    private static ImmutableArray<string> ParseTags(
+        TomlTable table,
+        List<ValidationIssue> issues)
+    {
+        if (!table.TryGetValue("tags", out var value))
+        {
+            return [];
+        }
+
+        if (value is not TomlArray array || array.Any(item => item is not string))
+        {
+            issues.Add(Error(
+                "manifest.property_type",
+                "Property 'tags' must be an array of strings."));
+            return [];
+        }
+
+        var tags = ImmutableArray.CreateBuilder<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var rawTag in array.Cast<string>())
+        {
+            var tag = rawTag.Trim();
+            if (tag.Length is 0 or > 40 || tag.Any(char.IsControl))
+            {
+                issues.Add(Error(
+                    "manifest.tag_invalid",
+                    "Template tags must contain between 1 and 40 visible characters."));
+                continue;
+            }
+
+            if (!seen.Add(tag))
+            {
+                issues.Add(Error(
+                    "manifest.tag_duplicate",
+                    $"Template tag '{tag}' is declared more than once."));
+                continue;
+            }
+
+            tags.Add(tag);
+        }
+
+        return tags.ToImmutable();
+    }
+
+    private static ImmutableArray<TemplatePrerequisite> ParsePrerequisites(
+        TomlTable table,
+        List<ValidationIssue> issues)
+    {
+        if (!table.TryGetValue("prerequisites", out var rawPrerequisites))
+        {
+            return [];
+        }
+
+        if (rawPrerequisites is not TomlTableArray prerequisiteTables)
+        {
+            issues.Add(Error(
+                "manifest.property_type",
+                "Property 'prerequisites' must be an array of tables."));
+            return [];
+        }
+
+        var prerequisites = ImmutableArray.CreateBuilder<TemplatePrerequisite>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < prerequisiteTables.Count; index++)
+        {
+            var prerequisiteTable = prerequisiteTables[index];
+            var context = $"prerequisites[{index}]";
+            var id = GetString(prerequisiteTable, "id", issues, context);
+            var name = GetString(prerequisiteTable, "name", issues, context);
+            var description = GetString(
+                prerequisiteTable,
+                "description",
+                issues,
+                context);
+            var requiredFor = GetString(
+                prerequisiteTable,
+                "required_for",
+                issues,
+                context);
+
+            if (id is not null)
+            {
+                if (!ParameterIdPattern().IsMatch(id))
+                {
+                    issues.Add(Error(
+                        "prerequisite.id_invalid",
+                        $"Prerequisite ID '{id}' must be a valid template identifier."));
+                }
+
+                if (!ids.Add(id))
+                {
+                    issues.Add(Error(
+                        "prerequisite.id_duplicate",
+                        $"Prerequisite ID '{id}' is declared more than once."));
+                }
+            }
+
+            if (requiredFor is not null &&
+                requiredFor is not ("build" or "run" or "development"))
+            {
+                issues.Add(Error(
+                    "prerequisite.required_for_invalid",
+                    $"Prerequisite '{id ?? context}' has unsupported required_for value '{requiredFor}'."));
+            }
+
+            if (id is not null &&
+                name is not null &&
+                description is not null &&
+                requiredFor is "build" or "run" or "development")
+            {
+                prerequisites.Add(new TemplatePrerequisite(
+                    id,
+                    name,
+                    description,
+                    requiredFor));
+            }
+        }
+
+        return prerequisites.ToImmutable();
     }
 
     private static ImmutableArray<TemplateParameterDefinition> ParseParameters(
@@ -359,6 +492,27 @@ public static partial class TemplatePackageLoader
         return null;
     }
 
+    private static string? GetOptionalNonEmptyString(
+        TomlTable table,
+        string property,
+        List<ValidationIssue> issues)
+    {
+        if (!table.TryGetValue(property, out var value))
+        {
+            return null;
+        }
+
+        if (value is string text && !string.IsNullOrWhiteSpace(text))
+        {
+            return text;
+        }
+
+        issues.Add(Error(
+            "manifest.property_type",
+            $"Property '{property}' must be a non-empty string."));
+        return null;
+    }
+
     private static int? GetInteger(
         TomlTable table,
         string property,
@@ -405,6 +559,27 @@ public static partial class TemplatePackageLoader
         return null;
     }
 
+    private static bool? GetOptionalBoolean(
+        TomlTable table,
+        string property,
+        List<ValidationIssue> issues)
+    {
+        if (!table.TryGetValue(property, out var value))
+        {
+            return null;
+        }
+
+        if (value is bool boolean)
+        {
+            return boolean;
+        }
+
+        issues.Add(Error(
+            "manifest.property_type",
+            $"Property '{property}' must be a boolean."));
+        return null;
+    }
+
     private static ImmutableArray<string> GetStringArray(
         TomlTable table,
         string property,
@@ -441,6 +616,70 @@ public static partial class TemplatePackageLoader
         string? parameterId = null,
         string? path = null) =>
         new(ValidationSeverity.Error, code, message, parameterId, path);
+
+    private static string? ResolveLogoPath(
+        string packageRoot,
+        string relativeLogoPath,
+        List<ValidationIssue> issues)
+    {
+        var normalized = SafePath.NormalizeRelative(relativeLogoPath);
+        issues.AddRange(normalized.Issues);
+        if (!normalized.IsSuccess)
+        {
+            return null;
+        }
+
+        var resolved = SafePath.ResolveUnderRoot(packageRoot, normalized.Value!);
+        issues.AddRange(resolved.Issues);
+        if (!resolved.IsSuccess)
+        {
+            return null;
+        }
+
+        var logoPath = resolved.Value!;
+        if (!File.Exists(logoPath))
+        {
+            issues.Add(Error(
+                "manifest.logo_not_found",
+                $"Template logo '{relativeLogoPath}' does not exist.",
+                path: relativeLogoPath));
+            return null;
+        }
+
+        var file = new FileInfo(logoPath);
+        if (file.Attributes.HasFlag(FileAttributes.ReparsePoint))
+        {
+            issues.Add(Error(
+                "package.reparse_point",
+                "The template logo cannot be a symbolic link or reparse point.",
+                path: relativeLogoPath));
+            return null;
+        }
+
+        var extension = file.Extension;
+        if (!extension.Equals(".png", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) &&
+            !extension.Equals(".webp", StringComparison.OrdinalIgnoreCase))
+        {
+            issues.Add(Error(
+                "manifest.logo_format_unsupported",
+                "Template logos must use PNG, JPEG, or WebP format.",
+                path: relativeLogoPath));
+            return null;
+        }
+
+        if (file.Length > MaximumLogoBytes)
+        {
+            issues.Add(Error(
+                "manifest.logo_too_large",
+                "Template logos cannot be larger than 5 MiB.",
+                path: relativeLogoPath));
+            return null;
+        }
+
+        return logoPath;
+    }
 
     [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.CultureInvariant)]
     private static partial Regex ParameterIdPattern();

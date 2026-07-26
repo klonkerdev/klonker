@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Klonker.Desktop.Controls"
+             xmlns:vm="using:Klonker.Desktop.ViewModels"
+             x:Class="Klonker.Desktop.Controls.ProjectTreeView"
+             x:Name="Root"
+             x:DataType="controls:ProjectTreeView">
+
+  <TreeView AutomationProperties.Name="{Binding AutomationName, ElementName=Root}"
+            Background="Transparent"
+            BorderThickness="0"
+            ItemsSource="{Binding Nodes, ElementName=Root}"
+            SelectedItem="{Binding SelectedNode, ElementName=Root, Mode=TwoWay}">
+    <TreeView.Styles>
+      <Style Selector="TreeViewItem">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="3,1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="IsExpanded"
+                Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+      </Style>
+      <Style Selector="TreeViewItem:pointerover">
+        <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+      </Style>
+      <Style Selector="TreeViewItem:selected">
+        <Setter Property="Background" Value="{StaticResource SelectionBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+      </Style>
+    </TreeView.Styles>
+
+    <TreeView.ItemTemplate>
+      <TreeDataTemplate DataType="vm:ProjectTreeNodeViewModel"
+                        ItemsSource="{Binding Children}">
+        <Grid Height="28"
+              ColumnDefinitions="20,*"
+              ColumnSpacing="7"
+              ToolTip.Tip="{Binding RelativePath}">
+          <Grid Width="18"
+                Height="18"
+                VerticalAlignment="Center">
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconFolder}"
+                      Foreground="{StaticResource FolderIconBrush}"
+                      IsVisible="{Binding IsDirectory}" />
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconCodeFile}"
+                      Foreground="{StaticResource CodeIconBrush}"
+                      IsVisible="{Binding IsCode}" />
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconDocument}"
+                      Foreground="{StaticResource MarkdownIconBrush}"
+                      IsVisible="{Binding IsMarkdown}" />
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconBuild}"
+                      Foreground="{StaticResource BuildIconBrush}"
+                      IsVisible="{Binding IsBuild}" />
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconConfigurationFile}"
+                      Foreground="{StaticResource ConfigurationIconBrush}"
+                      IsVisible="{Binding IsConfiguration}" />
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconBinaryFile}"
+                      Foreground="{StaticResource BinaryIconBrush}"
+                      IsVisible="{Binding IsBinary}" />
+            <PathIcon Width="18"
+                      Height="18"
+                      Data="{StaticResource IconFile}"
+                      Foreground="{StaticResource FileIconBrush}"
+                      IsVisible="{Binding IsGenericFile}" />
+          </Grid>
+
+          <TextBlock Grid.Column="1"
+                     VerticalAlignment="Center"
+                     FontFamily="Cascadia Mono,Consolas"
+                     FontSize="12"
+                     Text="{Binding Name}"
+                     TextTrimming="CharacterEllipsis" />
+        </Grid>
+      </TreeDataTemplate>
+    </TreeView.ItemTemplate>
+  </TreeView>
+</UserControl>

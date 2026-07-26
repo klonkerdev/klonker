@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Klonker.Core.Tests.TestSupport;
 
 internal static class RepositoryPaths
@@ -6,20 +8,12 @@ internal static class RepositoryPaths
     {
         get
         {
-            var current = new DirectoryInfo(AppContext.BaseDirectory);
-            while (current is not null)
+            var registry = FindRegistryFrom(AppContext.BaseDirectory) ??
+                FindRegistryFrom(Environment.CurrentDirectory) ??
+                FindRegistryFrom(GetSourceDirectory());
+            if (registry is not null)
             {
-                var candidate = System.IO.Path.Combine(
-                    current.FullName,
-                    "samples",
-                    "local-registry",
-                    "registry.json");
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                current = current.Parent;
+                return registry;
             }
 
             throw new DirectoryNotFoundException(
@@ -30,5 +24,30 @@ internal static class RepositoryPaths
     public static string SamplePackage => System.IO.Path.Combine(
         System.IO.Path.GetDirectoryName(SampleRegistry)!,
         "packages",
-        "official.cpp-cli.windows-cmake");
+        "std.cpp-cli.windows-cmake");
+
+    private static string? FindRegistryFrom(string startPath)
+    {
+        var current = new DirectoryInfo(startPath);
+        while (current is not null)
+        {
+            var candidate = System.IO.Path.Combine(
+                current.FullName,
+                "samples",
+                "local-registry",
+                "registry.json");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        return null;
+    }
+
+    private static string GetSourceDirectory(
+        [CallerFilePath] string sourceFilePath = "") =>
+        Path.GetDirectoryName(sourceFilePath)!;
 }

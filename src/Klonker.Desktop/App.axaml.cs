@@ -7,8 +7,10 @@ using Klonker.Desktop.Views;
 
 namespace Klonker.Desktop;
 
-public partial class App : Application
+public partial class App : Application, IDisposable
 {
+    private HttpClient? registryHttpClient;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -18,16 +20,36 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var catalog = new LocalSampleTemplateCatalog();
-            var viewModel = new MainViewModel(catalog);
-            viewModel.Load();
-
-            desktop.MainWindow = new MainWindow
+            registryHttpClient = new HttpClient
             {
-                DataContext = viewModel,
+                Timeout = TimeSpan.FromSeconds(20),
             };
+            var configurationStore = RegistryConfigurationStore.CreateDefault();
+            var catalog = new ConfiguredTemplateCatalog(
+                configurationStore,
+                new Klonker.Core.Registry.RegistryCatalogService(registryHttpClient));
+            var window = new MainWindow();
+            var viewModel = new MainViewModel(
+                catalog,
+                new CoreProjectGenerationService(),
+                new AvaloniaDestinationPicker(window));
+            window.DataContext = viewModel;
+            desktop.MainWindow = window;
+            desktop.Exit += (_, _) =>
+            {
+                viewModel.Dispose();
+                Dispose();
+            };
+            viewModel.Load();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    public void Dispose()
+    {
+        registryHttpClient?.Dispose();
+        registryHttpClient = null;
+        GC.SuppressFinalize(this);
     }
 }

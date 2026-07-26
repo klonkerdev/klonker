@@ -4,5 +4,6 @@ namespace Klonker.Desktop.Services;
 
 public interface ITemplateCatalog
 {
-    OperationResult<TemplateCatalogSnapshot> Load();
+    Task<OperationResult<TemplateCatalogSnapshot>> LoadAsync(
+        CancellationToken cancellationToken = default);
 }

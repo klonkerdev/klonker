@@ -21,9 +21,12 @@ Version one is project generation only:
 - support Windows destinations first;
 - support monolithic starter packages with declared source/dependency licenses.
 
-The first implemented family is a C++ command-line application using CMake on
-Windows. Other useful initial families may include a small C# console app and a
-minimal web app, but they are not implemented.
+The first implemented family is a C++ command-line application. Its prepared
+official registry provides CMake, GNU Make, and xmake variants targeting
+Windows and Linux. A Linux-targeted template still generates into the selected
+Windows destination; generation inside WSL remains planned. Other useful
+families may include a small C# console app and a minimal web app, but they are
+not implemented.
 
 ## Lifecycle
 
@@ -42,6 +45,8 @@ template-supplied scripts. It has no MCP or coding-agent integration.
 ## Platform direction
 
 The current desktop development and filesystem behavior are Windows-first.
+Configured local registries, HTTPS remote registries, checksummed package
+caching, and explicit offline reuse are implemented on the desktop path.
 Generation inside a user-selected WSL distribution is planned after the
 Windows flow is complete. WSL support will be an explicit destination boundary,
 not an assumption that Windows path rules apply unchanged inside Linux.

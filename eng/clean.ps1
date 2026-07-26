@@ -62,4 +62,8 @@ foreach ($directory in @($testResults)) {
 $sampleOutput = Join-Path -Path $repositoryRoot -ChildPath 'samples/generated-output'
 Remove-RepositoryDirectory -Path $sampleOutput -Category 'generated sample output'
 
+$registryOutput = Join-Path -Path $repositoryRoot -ChildPath (
+    'samples/official-registry-repository/dist')
+Remove-RepositoryDirectory -Path $registryOutput -Category 'generated registry output'
+
 Write-Host 'Klonker repository-local output is clean.'

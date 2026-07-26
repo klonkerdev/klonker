@@ -1,0 +1,47 @@
+schema_version = 0
+
+id = "std.cpp-cli.windows-cmake"
+family_id = "std.cpp-cli"
+variant_id = "windows-cmake"
+
+name = "C++ CLI"
+description = "A small Windows C++ command-line application using CMake."
+version = "0.1.0"
+
+target_os = "windows"
+build_system = "cmake"
+
+source_license = "MIT"
+logo = "template-logo.png"
+tags = ["cli", "native", "starter", "cpp"]
+favorite = true
+
+[[prerequisites]]
+id = "cmake"
+name = "CMake 3.20 or later"
+description = "Required after generation to configure and build the C++ project."
+required_for = "build"
+
+[[prerequisites]]
+id = "cpp_toolchain"
+name = "A C++20/23 toolchain"
+description = "Install Visual Studio C++ Build Tools, Clang, or another CMake-compatible compiler before building."
+required_for = "build"
+
+[[parameters]]
+id = "project_name"
+type = "string"
+label = "Project name"
+description = "C++ project and executable name."
+required = true
+default = "MyCliApp"
+validation = "cpp_identifier"
+
+[[parameters]]
+id = "cpp_standard"
+type = "choice"
+label = "C++ standard"
+description = "Language standard used by the generated CMake target."
+required = true
+default = "23"
+values = ["20", "23"]

@@ -9,16 +9,17 @@ empty directory.
 
 Klonker does not build, run, update, import, or manage generated projects. It
 does not install SDKs, initialize Git, execute template scripts, or merge into
-non-empty trees. WSL generation, remote registries, caching, modules, and
-production template distribution are planned, not current behavior. Generated
-projects are fully detached from Klonker.
+non-empty trees. Local/HTTPS registries, package integrity checks, offline
+caching, preview, and transactional Windows generation are implemented. WSL
+generation, signatures, modules, and production official-template publication
+are planned. Generated projects are fully detached from Klonker.
 
 ## Repository structure
 
 - `src/Klonker.Core`: Avalonia-free parsing, validation, rendering, path
   safety, planning, registry-index reading, and filesystem execution.
-- `src/Klonker.Desktop`: Avalonia views, view models, and desktop-only sample
-  catalog location.
+- `src/Klonker.Desktop`: Avalonia views, view models, user registry
+  configuration, native destination selection, and desktop services.
 - `tests/Klonker.Core.Tests`: behavioral and temporary-directory integration
   tests for Core and headless view-model tests.
 - `samples/local-registry`: development registry and C++ CLI sample package.
@@ -44,6 +45,8 @@ dotnet format Klonker.slnx --verify-no-changes
 .\eng\validate.ps1
 .\eng\run.ps1
 .\eng\clean.ps1
+.\eng\get-package-integrity.ps1 -PackageRoot <package-directory>
+.\eng\pack-registry.ps1 -SourceRoot <registry-source> -OutputRoot <new-output>
 ```
 
 Run `eng/validate.ps1` before declaring work complete.
@@ -76,6 +79,18 @@ reserved Windows paths. Compare destinations case-insensitively, detect
 file/directory collisions, reject reparse points, and repeat a containment
 check at the final filesystem resolution point. Never rely on string-prefix
 containment checks or overwrite an existing file.
+
+Remote registry indexes must use HTTPS. Do not cache an index until it parses
+successfully. Enforce byte limits, verify package size and SHA-256 before
+extraction, use opaque hash-derived cache paths, reject unsafe ZIP entries, and
+install cache entries transactionally. Offline mode must perform no network
+requests. Checksums are integrity controls, not signature/trust controls.
+
+Official registry source uses
+`templates/<namespace>/<package>/variants/<variant>`. The publisher discovers
+`package.toml` and `variant.toml`, derives IDs from matching folder names, and
+generates the runtime manifest and JSON index. Do not reintroduce a handwritten
+template array or a flat directory per variant.
 
 ## Testing and documentation
 

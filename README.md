@@ -7,21 +7,45 @@ trying ideas.
 
 ## Current status
 
-The first functional vertical slice is implemented:
+The first generation and registry vertical slices are implemented:
 
-- a local JSON registry locates the development C++ CLI package;
+- registry schema version 1 qualifies identities by registry and requires
+  package SHA-256/size metadata;
+- `%LOCALAPPDATA%\Klonker\registries.json` configures local and HTTPS remote
+  sources outside the repository;
+- validated remote indexes and packages use a transactional local cache with
+  explicit offline mode and cached-index fallback;
 - Core parses and validates the version-zero TOML manifest;
 - string, boolean, and choice parameters support defaults and validation;
 - restricted Scriban rendering creates a deterministic, path-safe in-memory
   preview;
-- the Avalonia desktop app displays the sample, generated parameter controls,
-  a directory tree, and selectable rendered text;
-- Core can transactionally write a validated plan to a new or empty directory;
+- the high-contrast charcoal Avalonia catalog first groups registry entries
+  into package cards, with name/language/platform/build-system/tag filters;
+- confirming a package fills a second card list with only that package's
+  variants; confirming a variant opens the configuration, preview, and
+  generation screen;
+- variant cards pair readable labels with host-owned platform and build-system
+  logos for Windows, Linux, CMake, GNU Make, and xmake;
+- the configuration screen provides generated parameter controls, the reusable
+  project-tree control, and selectable rendered text;
+- optional package logos and arbitrary descriptive tags appear on package and
+  variant cards, while session favorite toggles remain variant-specific;
+- custom tags use a distinct colored row and catalog filter; platform,
+  language, and build metadata remain separate;
+- generated C++, CMake, Markdown, and configuration text uses a selectable,
+  read-only syntax-highlighted preview;
+- preview navigation includes direct file selection, previous/next actions,
+  and expand/collapse-all controls;
+- copied known-text source files are strictly decoded as UTF-8 for preview
+  while remaining byte-for-byte copies in the generation plan;
+- manifests can declare display-only after-generation prerequisites;
+- Desktop provides a destination field/native folder picker, explicit
+  confirmation, transactional Generate action, cancellation, and structured
+  success/failure details;
+- Core writes a validated plan only to a new or empty directory;
 - automated tests cover manifests, values, rendering, paths, planning,
-  execution, and headless view-model behavior.
-
-The desktop UI currently stops at preview. It does not yet expose the Core
-generation executor.
+  registry integrity/cache/offline behavior, execution, and headless
+  view-model behavior.
 
 ## Version-one scope
 
@@ -62,27 +86,44 @@ dotnet format Klonker.slnx
 Use `.\eng\clean.ps1` to remove repository-local `bin`, `obj`, `TestResults`,
 and known generated sample output.
 
+To build deterministic ZIP/index artifacts for a separate registry repository:
+
+```powershell
+.\eng\pack-registry.ps1 `
+  -SourceRoot D:\repos\klonker-registry `
+  -OutputRoot D:\repos\klonker-registry-dist
+```
+
+The source root uses `registry.toml` plus discovered
+`templates/<namespace>/<package>/variants/<variant>` folders; template entries
+are not maintained by hand. See
+[Official registry](docs/official-registry.md).
+
 ## Repository layout
 
 ```text
 src/
   Klonker.Core/          Avalonia-free template and generation engine
-  Klonker.Desktop/       Avalonia desktop UI and local sample catalog service
+  Klonker.Desktop/       Avalonia desktop UI and configured catalog service
 tests/
   Klonker.Core.Tests/    Core integration and headless view-model tests
 samples/local-registry/  Development-only registry and template package
+samples/official-registry-repository/  External-repository metadata seed
 docs/                    Product and engineering documentation
-eng/                     Validation, run, and clean scripts
+eng/                     Validation, run, clean, and registry packaging scripts
 ```
 
 ## Development sample
 
 `samples/local-registry` contains
-`official.cpp-cli.windows-cmake`, a dependency-free C++ command-line starter.
+`std.cpp-cli.windows-cmake`, a dependency-free C++ command-line starter.
 It generates `CMakeLists.txt`, a project README, `src/main.cpp`, and a modest
 argument parser supporting `--help`, `-h`, `--version`, unknown-option errors,
-and positional arguments. The sample is test and development data, not the
-future production official-template repository.
+and positional arguments. The checked-in sample is test and development data;
+the production catalog is maintained separately in the
+[`klonkerdev/registry`](https://github.com/klonkerdev/registry) repository and
+currently publishes Windows/Linux variants for CMake, GNU Make, and xmake.
+New Klonker configurations use its published raw GitHub index directly.
 
 ## Security
 
@@ -90,7 +131,10 @@ Template packages are untrusted. Klonker rejects unsafe and colliding Windows
 paths and version zero rejects symbolic links/reparse points. Scriban receives
 only declared primitive values and six deterministic Klonker string helpers;
 it receives no filesystem, environment, network, process, reflection, clock,
-or random access. Templates cannot supply commands or scripts.
+or random access. Templates cannot supply commands or scripts. Remote
+registries are HTTPS-only; packages are size-limited, SHA-256 verified, and
+extracted through the same Windows path-safety boundary. Checksums provide
+integrity, not publisher authentication.
 
 ## Documentation
 
@@ -99,14 +143,15 @@ or random access. Templates cannot supply commands or scripts.
 - [Development](docs/development.md)
 - [Testing](docs/testing.md)
 - [Template format v0](docs/template-format-v0.md)
+- [Registry format v1](docs/registry-format-v1.md)
+- [Official registry preparation](docs/official-registry.md)
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/)
 
 ## Short roadmap
 
-Next, connect destination selection and the tested Core executor to the desktop
-workflow. After that: local-registry configuration and package caching, richer
-preview/validation, and then carefully scoped WSL generation. Remote registry
-synchronization, modules, and agent integrations remain deferred.
+Next, add persistent favorite preferences, registry management UI, signed
+registry trust policy, and more official template families. WSL generation,
+modules, and agent integrations remain deferred.
 
 Klonker is licensed under the [MIT License](LICENSE).

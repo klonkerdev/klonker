@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:Klonker.Desktop.Controls"
+             x:Class="Klonker.Desktop.Controls.SyntaxHighlightedTextView"
+             x:DataType="controls:SyntaxHighlightedTextView">
+
+  <Border Background="{StaticResource InputBrush}"
+          BorderBrush="{StaticResource BorderBrush}"
+          BorderThickness="1"
+          CornerRadius="7"
+          ClipToBounds="True">
+    <Grid RowDefinitions="38,*">
+      <Border Background="{StaticResource SurfaceRaisedBrush}"
+              BorderBrush="{StaticResource BorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="11,0">
+        <Grid ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="8">
+          <PathIcon Width="15"
+                    Height="15"
+                    VerticalAlignment="Center"
+                    Data="{StaticResource IconCodeFile}"
+                    Foreground="{StaticResource CodeIconBrush}" />
+          <TextBlock x:Name="FileNameLabel"
+                     Grid.Column="1"
+                     VerticalAlignment="Center"
+                     FontFamily="Cascadia Mono,Consolas"
+                     FontSize="11"
+                     Foreground="{StaticResource TextSecondaryBrush}"
+                     TextTrimming="CharacterEllipsis" />
+          <Border Grid.Column="2"
+                  Padding="7,3"
+                  VerticalAlignment="Center"
+                  Background="{StaticResource InputBrush}"
+                  CornerRadius="4">
+            <TextBlock x:Name="LanguageLabel"
+                       FontSize="9"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextMutedBrush}" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <ScrollViewer Grid.Row="1"
+                    HorizontalScrollBarVisibility="Auto"
+                    VerticalScrollBarVisibility="Auto">
+        <SelectableTextBlock x:Name="CodeText"
+                             AutomationProperties.Name="{Binding AutomationName}"
+                             MinWidth="640"
+                             Padding="14,12"
+                             FontFamily="Cascadia Mono,Consolas"
+                             FontSize="12"
+                             LineHeight="19"
+                             TextWrapping="NoWrap" />
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

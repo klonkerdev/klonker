@@ -42,6 +42,34 @@ try {
         '--verify-no-changes',
         '--no-restore')
 
+    $samplePackage = Join-Path -Path $repositoryRoot -ChildPath (
+        'samples/local-registry/packages/std.cpp-cli.windows-cmake')
+    $sampleRegistryPath = Join-Path -Path $repositoryRoot -ChildPath (
+        'samples/local-registry/registry.json')
+    $integrityScript = Join-Path -Path $PSScriptRoot -ChildPath (
+        'get-package-integrity.ps1')
+    $integrity = & $integrityScript -PackageRoot $samplePackage
+    $sampleRegistry = Get-Content -LiteralPath $sampleRegistryPath -Raw |
+        ConvertFrom-Json
+    $entry = @($sampleRegistry.templates) |
+        Where-Object {
+            $_.template_id -eq 'std.cpp-cli.windows-cmake'
+        } |
+        Select-Object -First 1
+    if ($null -eq $entry) {
+        throw 'The development sample registry entry is missing.'
+    }
+
+    if (
+        $entry.package_sha256 -ne $integrity.package_sha256 -or
+        [int64] $entry.package_size_bytes -ne
+            [int64] $integrity.package_size_bytes
+    ) {
+        throw (
+            'The development sample registry checksum/size is stale. ' +
+            'Run eng/get-package-integrity.ps1 and update registry.json.')
+    }
+
     Write-Host 'Klonker validation succeeded.'
 }
 finally {

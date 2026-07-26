@@ -1,19 +1,21 @@
 {
-  "schema_version": 0,
+  "schema_version": 1,
   "registry_id": "klonker.samples.local",
   "display_name": "Klonker development samples",
   "templates": [
     {
-      "family_id": "official.cpp-cli",
+      "family_id": "std.cpp-cli",
       "variant_id": "windows-cmake",
-      "template_id": "official.cpp-cli.windows-cmake",
+      "template_id": "std.cpp-cli.windows-cmake",
       "name": "C++ CLI",
       "description": "A small Windows C++ command-line application using CMake.",
       "version": "0.1.0",
       "target_os": "windows",
       "build_system": "cmake",
-      "package_path": "packages/official.cpp-cli.windows-cmake",
-      "license_summary": "Generated source: MIT"
+      "package_path": "packages/std.cpp-cli.windows-cmake",
+      "license_summary": "Generated source: MIT",
+      "package_sha256": "a853b2dd642f79c260d063faf722a9ffb1fb3e97c65d3c317b39832cb182d0c7",
+      "package_size_bytes": 923400
     }
   ]
 }

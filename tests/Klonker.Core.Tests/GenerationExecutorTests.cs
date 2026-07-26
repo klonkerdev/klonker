@@ -132,7 +132,12 @@ public sealed class GenerationExecutorTests
             .ToImmutableArray();
 
         return new GenerationPlan(
-            new TemplateIdentity("test", "test", "default", "1.0.0"),
+            new TemplateIdentity(
+                "tests.local",
+                "test",
+                "test",
+                "default",
+                "1.0.0"),
             directories,
             plannedFiles,
             []);

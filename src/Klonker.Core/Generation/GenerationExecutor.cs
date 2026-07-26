@@ -12,32 +12,19 @@ public static class GenerationExecutor
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(plan);
-        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
 
-        var destination = Path.GetFullPath(destinationPath);
-        var parent = Directory.GetParent(destination);
-        if (parent is null || !parent.Exists)
+        var destinationValidation = GenerationDestinationValidator.Validate(destinationPath);
+        if (!destinationValidation.IsSuccess)
         {
-            return Rejected(
-                "destination.parent_missing",
-                "The destination's parent directory must already exist.");
+            return new GenerationResult(
+                GenerationStatus.Rejected,
+                destinationValidation.Issues[0].Message,
+                destinationValidation.Issues);
         }
 
-        if (File.Exists(destination))
-        {
-            return Rejected(
-                "destination.is_file",
-                "The destination is an existing file.");
-        }
-
+        var destination = destinationValidation.Value!;
+        var parent = Directory.GetParent(destination)!;
         var destinationExists = Directory.Exists(destination);
-        if (destinationExists && Directory.EnumerateFileSystemEntries(destination).Any())
-        {
-            return Rejected(
-                "destination.not_empty",
-                "The destination directory must be new or empty.");
-        }
-
         var planValidation = ValidatePlan(plan);
         if (planValidation.Length > 0)
         {

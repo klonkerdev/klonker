@@ -1,0 +1,489 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Klonker.Desktop.ViewModels"
+             xmlns:controls="using:Klonker.Desktop.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="Klonker.Desktop.Views.ConfigurationView"
+             x:DataType="vm:MainViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="1360"
+             d:DesignHeight="776">
+
+  <Design.DataContext>
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+  <Grid Margin="12"
+        RowDefinitions="Auto,*,Auto,Auto"
+        RowSpacing="10">
+    <Grid ColumnDefinitions="Auto,*,Auto"
+          ColumnSpacing="12">
+      <Button AutomationProperties.Name="Back to variants"
+              Classes="ghost"
+              Command="{Binding BackToCatalogCommand}"
+              ToolTip.Tip="Back to variants">
+        <StackPanel Orientation="Horizontal" Spacing="7">
+          <PathIcon Width="15"
+                    Height="15"
+                    Data="{StaticResource IconBack}" />
+          <TextBlock VerticalAlignment="Center" Text="Variants" />
+        </StackPanel>
+      </Button>
+
+      <StackPanel Grid.Column="1"
+                  VerticalAlignment="Center">
+        <TextBlock Classes="eyebrow"
+                   Text="CONFIGURE VARIANT" />
+        <StackPanel Margin="0,2,0,0"
+                    Orientation="Horizontal"
+                    Spacing="8">
+          <TextBlock FontSize="17"
+                     FontWeight="SemiBold"
+                     Text="{Binding SelectedTemplate.Name}" />
+          <TextBlock VerticalAlignment="Center"
+                     Classes="muted"
+                     FontSize="11"
+                     Text="{Binding SelectedTemplate.RegistryName}" />
+        </StackPanel>
+      </StackPanel>
+
+      <Border Grid.Column="2"
+              Padding="10,5"
+              VerticalAlignment="Center"
+              Background="{StaticResource AccentMutedBrush}"
+              CornerRadius="12">
+        <TextBlock FontSize="11"
+                   Foreground="{StaticResource AccentBrush}"
+                   Text="{Binding SelectedTemplate.Metadata}" />
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="1"
+          ColumnDefinitions="380,*"
+          ColumnSpacing="10">
+      <Border Classes="panel"
+              Padding="15">
+        <Grid RowDefinitions="Auto,*,Auto,Auto"
+              RowSpacing="14">
+          <Grid ColumnDefinitions="Auto,*"
+                ColumnSpacing="10">
+            <Border Width="34"
+                    Height="34"
+                    Background="{StaticResource SurfaceRaisedBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6">
+              <PathIcon Width="17"
+                        Height="17"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Data="{StaticResource IconSettings}"
+                        Foreground="{StaticResource AccentBrush}" />
+            </Border>
+            <StackPanel Grid.Column="1">
+              <TextBlock Classes="title"
+                         FontSize="17"
+                         Text="Project settings" />
+              <TextBlock Margin="0,3,0,0"
+                         Classes="muted"
+                         FontSize="12"
+                         Text="Preview first, then generate into a new or empty directory." />
+            </StackPanel>
+          </Grid>
+
+          <ScrollViewer Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+              <ItemsControl ItemsSource="{Binding Parameters}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ParameterEditorViewModel">
+                    <StackPanel Margin="0,0,0,18">
+                      <TextBlock FontWeight="SemiBold"
+                                 Text="{Binding Label}" />
+                      <TextBlock Margin="0,3,0,8"
+                                 Classes="muted"
+                                 FontSize="12"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Description}" />
+                      <TextBox AutomationProperties.Name="{Binding Label}"
+                               Classes="field"
+                               IsVisible="{Binding IsText}"
+                               Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      <ComboBox AutomationProperties.Name="{Binding Label}"
+                                Classes="field"
+                                IsVisible="{Binding IsChoice}"
+                                ItemsSource="{Binding Choices}"
+                                SelectedItem="{Binding Value, Mode=TwoWay}" />
+                      <CheckBox AutomationProperties.Name="{Binding Label}"
+                                IsVisible="{Binding IsBoolean}"
+                                IsChecked="{Binding BooleanValue, Mode=TwoWay}"
+                                Content="Enabled" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Border Height="1"
+                      Margin="0,0,0,15"
+                      Background="{StaticResource BorderBrush}" />
+
+              <TextBlock FontWeight="SemiBold"
+                         Text="Destination" />
+              <TextBlock Margin="0,3,0,8"
+                         Classes="muted"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Text="Type a new path or choose an existing empty folder." />
+              <Grid ColumnDefinitions="*,Auto"
+                    ColumnSpacing="7">
+                <TextBox AutomationProperties.Name="Project destination"
+                         Classes="field"
+                         PlaceholderText="D:\projects\MyCliApp"
+                         Text="{Binding DestinationPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Grid.Column="1"
+                        AutomationProperties.Name="Browse destination"
+                        Classes="ghost"
+                        Width="40"
+                        Padding="0"
+                        Command="{Binding BrowseDestinationCommand}"
+                        ToolTip.Tip="Choose destination folder">
+                  <PathIcon Width="17"
+                            Height="17"
+                            Data="{StaticResource IconBrowse}" />
+                </Button>
+              </Grid>
+
+              <StackPanel Margin="0,18,0,0"
+                          IsVisible="{Binding HasPrerequisites}">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="7">
+                  <PathIcon Width="15"
+                            Height="15"
+                            Data="{StaticResource IconInfo}"
+                            Foreground="{StaticResource WarningBrush}" />
+                  <TextBlock FontWeight="SemiBold"
+                             Text="After-generation requirements" />
+                </StackPanel>
+                <TextBlock Margin="0,4,0,9"
+                           Classes="muted"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="Klonker reports these requirements but does not install or run them." />
+                <ItemsControl ItemsSource="{Binding Prerequisites}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PrerequisiteViewModel">
+                      <Border Margin="0,0,0,7"
+                              Padding="9"
+                              Background="{StaticResource InputBrush}"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="1"
+                              CornerRadius="5">
+                        <StackPanel>
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding Name}" />
+                            <TextBlock Grid.Column="1"
+                                       Classes="muted"
+                                       FontSize="10"
+                                       Text="{Binding RequiredFor}" />
+                          </Grid>
+                          <TextBlock Margin="0,4,0,0"
+                                     Classes="muted"
+                                     FontSize="11"
+                                     TextWrapping="Wrap"
+                                     Text="{Binding Description}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+
+          <Grid Grid.Row="2"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="8">
+            <Button AutomationProperties.Name="Build preview"
+                    Classes="ghost"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding PreviewCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Width="15"
+                          Height="15"
+                          Data="{StaticResource IconPlay}" />
+                <TextBlock VerticalAlignment="Center" Text="Preview" />
+              </StackPanel>
+            </Button>
+            <Button Grid.Column="1"
+                    AutomationProperties.Name="Generate project"
+                    Classes="primary"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding RequestGenerationCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Width="15"
+                          Height="15"
+                          Data="{StaticResource IconGenerate}" />
+                <TextBlock VerticalAlignment="Center" Text="Generate" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <Button Grid.Row="3"
+                  AutomationProperties.Name="Cancel generation"
+                  Classes="ghost"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  Command="{Binding CancelGenerationCommand}"
+                  IsVisible="{Binding IsGenerating}"
+                  Content="Cancel generation" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1"
+              Classes="panel"
+              Padding="15">
+        <Grid RowDefinitions="Auto,Auto,*"
+              RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="title"
+                         FontSize="17"
+                         Text="Generated preview" />
+              <TextBlock Margin="0,3,0,0"
+                         Classes="muted"
+                         FontSize="12"
+                         Text="Inspect every path and rendered file before writing anything." />
+            </StackPanel>
+            <TextBlock Grid.Column="1"
+                       VerticalAlignment="Center"
+                       Classes="muted"
+                       FontSize="12"
+                       Text="{Binding StatusMessage}" />
+          </Grid>
+
+          <Grid Grid.Row="1"
+                ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto"
+                ColumnSpacing="6"
+                IsVisible="{Binding HasPreview}">
+            <Button AutomationProperties.Name="Collapse preview folders"
+                    Classes="icon"
+                    Width="32"
+                    Height="32"
+                    Command="{Binding Preview.CollapseAllCommand}"
+                    ToolTip.Tip="Collapse all folders">
+              <PathIcon Width="15"
+                        Height="15"
+                        Data="{StaticResource IconCollapseAll}" />
+            </Button>
+            <Button Grid.Column="1"
+                    AutomationProperties.Name="Expand preview folders"
+                    Classes="icon"
+                    Width="32"
+                    Height="32"
+                    Command="{Binding Preview.ExpandAllCommand}"
+                    ToolTip.Tip="Expand all folders">
+              <PathIcon Width="15"
+                        Height="15"
+                        Data="{StaticResource IconExpandAll}" />
+            </Button>
+            <ComboBox Grid.Column="2"
+                      AutomationProperties.Name="Preview file navigation"
+                      Classes="field"
+                      MinHeight="32"
+                      ItemsSource="{Binding Preview.Files}"
+                      SelectedItem="{Binding Preview.SelectedFile, Mode=TwoWay}" />
+            <TextBlock Grid.Column="3"
+                       VerticalAlignment="Center"
+                       Classes="muted"
+                       FontSize="11"
+                       Text="{Binding Preview.SelectionPosition}" />
+            <Button Grid.Column="4"
+                    AutomationProperties.Name="Previous preview file"
+                    Classes="icon"
+                    Width="32"
+                    Height="32"
+                    Command="{Binding Preview.SelectPreviousFileCommand}"
+                    ToolTip.Tip="Previous file">
+              <PathIcon Width="15"
+                        Height="15"
+                        Data="{StaticResource IconPrevious}" />
+            </Button>
+            <Button Grid.Column="5"
+                    AutomationProperties.Name="Next preview file"
+                    Classes="icon"
+                    Width="32"
+                    Height="32"
+                    Command="{Binding Preview.SelectNextFileCommand}"
+                    ToolTip.Tip="Next file">
+              <PathIcon Width="15"
+                        Height="15"
+                        Data="{StaticResource IconNext}" />
+            </Button>
+          </Grid>
+
+          <Grid Grid.Row="2"
+                ColumnDefinitions="250,*"
+                ColumnSpacing="10"
+                IsVisible="{Binding HasPreview}">
+            <Border Classes="inset"
+                    Padding="8">
+              <controls:ProjectTreeView AutomationName="Generated files"
+                                        Nodes="{Binding Preview.TreeNodes}"
+                                        SelectedNode="{Binding Preview.SelectedNode, Mode=TwoWay}" />
+            </Border>
+
+            <controls:SyntaxHighlightedTextView Grid.Column="1"
+                                                AutomationName="Rendered file content"
+                                                FileName="{Binding Preview.SelectedFile.Path}"
+                                                Text="{Binding Preview.SelectedContent}" />
+          </Grid>
+
+          <StackPanel Grid.Row="2"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding !HasPreview}">
+            <Border Width="70"
+                    Height="70"
+                    HorizontalAlignment="Center"
+                    Background="{StaticResource SurfaceRaisedBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+              <PathIcon Width="30"
+                        Height="30"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Data="{StaticResource IconCode}"
+                        Foreground="{StaticResource TextMutedBrush}" />
+            </Border>
+            <TextBlock Margin="0,14,0,0"
+                       HorizontalAlignment="Center"
+                       Classes="secondary"
+                       Text="Build a preview to inspect the generated project." />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2"
+            Classes="warningSurface"
+            Padding="13"
+            IsVisible="{Binding IsGenerationConfirmationVisible}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="12">
+        <PathIcon Width="19"
+                  Height="19"
+                  VerticalAlignment="Center"
+                  Data="{StaticResource IconInfo}"
+                  Foreground="{StaticResource WarningBrush}" />
+        <StackPanel Grid.Column="1">
+          <TextBlock FontWeight="SemiBold"
+                     Text="Confirm generation" />
+          <TextBlock Margin="0,3,0,0"
+                     Classes="secondary"
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     Text="{Binding GenerationConfirmationText}" />
+        </StackPanel>
+        <Button Grid.Column="2"
+                Classes="ghost"
+                Command="{Binding CancelGenerationConfirmationCommand}"
+                Content="Cancel" />
+        <Button Grid.Column="3"
+                AutomationProperties.Name="Confirm generation"
+                Classes="primary"
+                Command="{Binding ConfirmGenerationCommand}"
+                Content="Generate now" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2"
+          IsVisible="{Binding HasGenerationResult}">
+      <Border Classes="successSurface"
+              Padding="13"
+              IsVisible="{Binding GenerationResult.Succeeded}">
+        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="11">
+          <PathIcon Width="20"
+                    Height="20"
+                    Data="{StaticResource IconCheck}"
+                    Foreground="{StaticResource AccentBrush}" />
+          <StackPanel Grid.Column="1">
+            <TextBlock FontWeight="SemiBold"
+                       Text="{Binding GenerationResult.Title}" />
+            <TextBlock Margin="0,3,0,0"
+                       Classes="secondary"
+                       Text="{Binding GenerationResult.Message}" />
+            <TextBlock Margin="0,3,0,0"
+                       Classes="muted"
+                       FontSize="11"
+                       Text="{Binding GenerationResult.DestinationPath}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Padding="13"
+              Background="{StaticResource ErrorSurfaceBrush}"
+              BorderBrush="{StaticResource ErrorBrush}"
+              BorderThickness="1"
+              CornerRadius="7"
+              IsVisible="{Binding GenerationResult.Failed}">
+        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="11">
+          <PathIcon Width="20"
+                    Height="20"
+                    Data="{StaticResource IconError}"
+                    Foreground="{StaticResource ErrorBrush}" />
+          <StackPanel Grid.Column="1">
+            <TextBlock FontWeight="SemiBold"
+                       Text="{Binding GenerationResult.Title}" />
+            <TextBlock Margin="0,3,0,0"
+                       Foreground="#FFB4AD"
+                       TextWrapping="Wrap"
+                       Text="{Binding GenerationResult.Message}" />
+            <Expander Margin="0,5,0,0"
+                      Header="Safe diagnostic details"
+                      IsVisible="{Binding GenerationResult.HasDiagnosticDetails}">
+              <TextBlock Margin="0,5,0,0"
+                         FontFamily="Cascadia Mono,Consolas"
+                         FontSize="11"
+                         TextWrapping="Wrap"
+                         Text="{Binding GenerationResult.DiagnosticDetails}" />
+            </Expander>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="3"
+          ColumnDefinitions="*,Auto">
+      <TextBlock VerticalAlignment="Center"
+                 Classes="muted"
+                 FontSize="12"
+                 Text="{Binding StatusMessage}" />
+      <Border Grid.Column="1"
+              Padding="12,8"
+              MaxWidth="780"
+              Background="{StaticResource ErrorSurfaceBrush}"
+              BorderBrush="{StaticResource ErrorBrush}"
+              BorderThickness="1"
+              CornerRadius="6"
+              IsVisible="{Binding HasError}">
+        <StackPanel Orientation="Horizontal" Spacing="9">
+          <PathIcon Width="16"
+                    Height="16"
+                    Data="{StaticResource IconError}"
+                    Foreground="{StaticResource ErrorBrush}" />
+          <TextBlock Foreground="#FFB4AD"
+                     TextWrapping="Wrap"
+                     Text="{Binding ErrorMessage}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

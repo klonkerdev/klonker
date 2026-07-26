@@ -1,271 +1,112 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Klonker.Desktop.ViewModels"
+        xmlns:views="using:Klonker.Desktop.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         x:Class="Klonker.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         mc:Ignorable="d"
-        d:DesignWidth="1280"
-        d:DesignHeight="760"
-        Width="1280"
-        Height="760"
-        MinWidth="980"
-        MinHeight="620"
-        Background="#0D1117"
-        Icon="/Assets/avalonia-logo.ico"
+        d:DesignWidth="1360"
+        d:DesignHeight="820"
+        Width="1360"
+        Height="820"
+        MinWidth="1040"
+        MinHeight="680"
+        WindowDecorations="BorderOnly"
+        CanResize="True"
+        Icon="avares://Klonker.Desktop/Assets/klonker.png"
         Title="Klonker">
 
   <Design.DataContext>
     <vm:MainViewModel />
   </Design.DataContext>
 
-  <Window.Styles>
-    <Style Selector="Border.panel">
-      <Setter Property="Background" Value="#161B22" />
-      <Setter Property="BorderBrush" Value="#30363D" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Padding" Value="18" />
-    </Style>
-    <Style Selector="TextBlock.section-title">
-      <Setter Property="FontSize" Value="12" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#8B949E" />
-      <Setter Property="TextWrapping" Value="NoWrap" />
-    </Style>
-    <Style Selector="TextBlock.heading">
-      <Setter Property="FontSize" Value="20" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Foreground" Value="#F0F6FC" />
-    </Style>
-    <Style Selector="Button.primary">
-      <Setter Property="Background" Value="#238636" />
-      <Setter Property="Foreground" Value="White" />
-      <Setter Property="Padding" Value="18,9" />
-      <Setter Property="CornerRadius" Value="6" />
-      <Setter Property="HorizontalAlignment" Value="Stretch" />
-      <Setter Property="HorizontalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="TextBox.code">
-      <Setter Property="FontFamily" Value="Cascadia Mono,Consolas" />
-      <Setter Property="FontSize" Value="13" />
-      <Setter Property="Background" Value="#0D1117" />
-      <Setter Property="BorderBrush" Value="#30363D" />
-    </Style>
-  </Window.Styles>
+  <Grid RowDefinitions="42,*">
+    <Border Grid.Row="0"
+            Background="{StaticResource ChromeBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="0,0,0,1"
+            PointerPressed="OnTitleBarPointerPressed">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Image Margin="13,7"
+               Width="28"
+               Height="28"
+               HorizontalAlignment="Left"
+               Stretch="Uniform"
+               Source="avares://Klonker.Desktop/Assets/klonker.png" />
 
-  <Grid RowDefinitions="Auto,*,Auto" Margin="22">
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,18">
-      <Border Width="36"
-              Height="36"
-              Background="#238636"
-              CornerRadius="7">
-        <TextBlock HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="20"
-                   FontWeight="Bold"
-                   Text="K" />
-      </Border>
-      <StackPanel Grid.Column="1" Margin="12,0,0,0">
-        <TextBlock FontSize="20"
-                   FontWeight="SemiBold"
-                   Foreground="#F0F6FC"
-                   Text="Klonker" />
-      </StackPanel>
-      <Border Grid.Column="2"
-              Padding="10,5"
-              VerticalAlignment="Center"
-              Background="#1F2937"
-              CornerRadius="12">
-        <TextBlock FontSize="12"
-                   Foreground="#9CA3AF"
-                   Text="DEVELOPMENT PREVIEW" />
-      </Border>
-    </Grid>
+        <StackPanel Grid.Column="1"
+                    Margin="2,0,0,0"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Center"
+                    Spacing="1">
+          <TextBlock FontSize="13"
+                     FontWeight="Bold"
+                     Foreground="{StaticResource AccentBrush}"
+                     LetterSpacing="1.6"
+                     Text="K" />
+          <TextBlock FontSize="13"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource TextBrush}"
+                     LetterSpacing="2.1"
+                     Text="LONKER" />
+          <Border Margin="8,0,0,0"
+                  Padding="6,2"
+                  Background="{StaticResource SurfaceRaisedBrush}"
+                  BorderBrush="{StaticResource BorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="4">
+            <TextBlock FontSize="9"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextMutedBrush}"
+                       LetterSpacing="0.7"
+                       Text="PREVIEW" />
+          </Border>
+        </StackPanel>
 
-    <Grid Grid.Row="1" ColumnDefinitions="280,340,*" ColumnSpacing="14">
-      <Border Grid.Column="0" Classes="panel">
-        <Grid RowDefinitions="Auto,*">
-          <StackPanel Margin="0,0,0,14">
-            <TextBlock Classes="section-title" Text="TEMPLATES" />
-            <TextBlock Margin="0,5,0,0"
-                       Foreground="#C9D1D9"
-                       Text="Choose a project starting point." />
-          </StackPanel>
-          <ListBox Grid.Row="1"
-                   AutomationProperties.Name="Template catalog"
-                   ItemsSource="{Binding Templates}"
-                   SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
-                   Background="Transparent"
-                   BorderThickness="0">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:TemplateListItemViewModel">
-                <Border Margin="0,0,0,8"
-                        Padding="12"
-                        Background="#21262D"
-                        BorderBrush="#30363D"
-                        BorderThickness="1"
-                        CornerRadius="6">
-                  <StackPanel>
-                    <Grid ColumnDefinitions="*,Auto">
-                      <TextBlock FontWeight="SemiBold"
-                                 Foreground="#F0F6FC"
-                                 Text="{Binding Name}" />
-                      <TextBlock Grid.Column="1"
-                                 Foreground="#8B949E"
-                                 Text="{Binding Version}" />
-                    </Grid>
-                    <TextBlock Margin="0,7,0,0"
-                               FontSize="12"
-                               Foreground="#8B949E"
-                               TextWrapping="Wrap"
-                               Text="{Binding Description}" />
-                    <TextBlock Margin="0,9,0,0"
-                               FontSize="11"
-                               Foreground="#58A6FF"
-                               Text="{Binding Metadata}" />
-                  </StackPanel>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </Grid>
-      </Border>
-
-      <Border Grid.Column="1" Classes="panel">
-        <Grid RowDefinitions="Auto,*,Auto">
-          <StackPanel Margin="0,0,0,14">
-            <TextBlock Classes="section-title" Text="CONFIGURATION" />
-            <TextBlock Margin="0,5,0,0"
-                       Foreground="#C9D1D9"
-                       Text="Set values used by the template." />
-          </StackPanel>
-
-          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding Parameters}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ParameterEditorViewModel">
-                  <StackPanel Margin="0,0,0,17">
-                    <TextBlock FontWeight="SemiBold"
-                               Foreground="#F0F6FC"
-                               Text="{Binding Label}" />
-                    <TextBlock Margin="0,3,0,7"
-                               FontSize="12"
-                               Foreground="#8B949E"
-                               TextWrapping="Wrap"
-                               Text="{Binding Description}" />
-                    <TextBox IsVisible="{Binding IsText}"
-                             AutomationProperties.Name="{Binding Label}"
-                             Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <ComboBox IsVisible="{Binding IsChoice}"
-                              AutomationProperties.Name="{Binding Label}"
-                              ItemsSource="{Binding Choices}"
-                              SelectedItem="{Binding Value, Mode=TwoWay}" />
-                    <CheckBox IsVisible="{Binding IsBoolean}"
-                              AutomationProperties.Name="{Binding Label}"
-                              IsChecked="{Binding BooleanValue, Mode=TwoWay}"
-                              Content="Enabled" />
-                  </StackPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </ScrollViewer>
-
-          <Button Grid.Row="2"
-                  AutomationProperties.Name="Build preview"
-                  Classes="primary"
-                  Command="{Binding PreviewCommand}"
-                  Content="Build preview" />
-        </Grid>
-      </Border>
-
-      <Border Grid.Column="2" Classes="panel">
-        <Grid RowDefinitions="Auto,*">
-          <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14">
-            <StackPanel>
-              <TextBlock Classes="section-title" Text="GENERATED PREVIEW" />
-              <TextBlock Margin="0,5,0,0"
-                         Foreground="#C9D1D9"
-                         Text="Inspect the tree and rendered text before generation." />
-            </StackPanel>
-            <TextBlock Grid.Column="1"
-                       VerticalAlignment="Bottom"
-                       Foreground="#8B949E"
-                       Text="{Binding StatusMessage}" />
-          </Grid>
-
-          <Grid Grid.Row="1"
-                ColumnDefinitions="220,*"
-                ColumnSpacing="12"
-                IsVisible="{Binding HasPreview}">
-            <Grid RowDefinitions="180,*" RowSpacing="12">
-              <TextBox Classes="code"
-                       IsReadOnly="True"
-                       AcceptsReturn="True"
-                       TextWrapping="NoWrap"
-                       ScrollViewer.VerticalScrollBarVisibility="Auto"
-                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                       Text="{Binding Preview.DirectoryTree}" />
-              <ListBox Grid.Row="1"
-                       AutomationProperties.Name="Generated files"
-                       ItemsSource="{Binding Preview.Files}"
-                       SelectedItem="{Binding Preview.SelectedFile, Mode=TwoWay}"
-                       Background="#0D1117"
-                       BorderBrush="#30363D">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="vm:PreviewFileViewModel">
-                    <TextBlock FontFamily="Cascadia Mono,Consolas"
-                               FontSize="12"
-                               Text="{Binding Path}" />
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="1">
+          <Button AutomationProperties.Name="Minimize"
+                  Classes="icon"
+                  Click="OnMinimizeClicked"
+                  ToolTip.Tip="Minimize">
+            <PathIcon Width="14"
+                      Height="14"
+                      Data="{StaticResource IconMinimize}" />
+          </Button>
+          <Button AutomationProperties.Name="Maximize"
+                  Classes="icon"
+                  Click="OnMaximizeClicked"
+                  ToolTip.Tip="Maximize">
+            <Grid>
+              <PathIcon x:Name="MaximizeIcon"
+                        Width="13"
+                        Height="13"
+                        Data="{StaticResource IconMaximize}" />
+              <PathIcon x:Name="RestoreIcon"
+                        Width="13"
+                        Height="13"
+                        Data="{StaticResource IconRestore}"
+                        IsVisible="False" />
             </Grid>
-            <TextBox Grid.Column="1"
-                     AutomationProperties.Name="Rendered file content"
-                     Classes="code"
-                     IsReadOnly="True"
-                     AcceptsReturn="True"
-                     TextWrapping="NoWrap"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                     Text="{Binding Preview.SelectedContent}" />
-          </Grid>
+          </Button>
+          <Button AutomationProperties.Name="Close"
+                  Classes="icon close"
+                  Click="OnCloseClicked"
+                  ToolTip.Tip="Close">
+            <PathIcon Width="14"
+                      Height="14"
+                      Data="{StaticResource IconClose}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
 
-          <StackPanel Grid.Row="1"
-                      HorizontalAlignment="Center"
-                      VerticalAlignment="Center"
-                      IsVisible="{Binding !HasPreview}">
-            <TextBlock HorizontalAlignment="Center"
-                       FontSize="32"
-                       Foreground="#30363D"
-                       Text="&lt;/&gt;" />
-            <TextBlock Margin="0,10,0,0"
-                       HorizontalAlignment="Center"
-                       Foreground="#8B949E"
-                       Text="Configure a template, then build a preview." />
-          </StackPanel>
-        </Grid>
-      </Border>
-    </Grid>
-
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,14,0,0">
-      <TextBlock VerticalAlignment="Center"
-                 Foreground="#8B949E"
-                 Text="{Binding StatusMessage}" />
-      <Border Grid.Column="1"
-              MaxWidth="760"
-              Padding="12,8"
-              Background="#3D1F24"
-              BorderBrush="#F85149"
-              BorderThickness="1"
-              CornerRadius="6"
-              IsVisible="{Binding HasError}">
-        <TextBlock Foreground="#FFB4AB"
-                   TextWrapping="Wrap"
-                   Text="{Binding ErrorMessage}" />
-      </Border>
+    <Grid Grid.Row="1">
+      <views:CatalogView IsVisible="{Binding IsCatalogView}" />
+      <views:ConfigurationView IsVisible="{Binding IsConfigurationView}" />
     </Grid>
   </Grid>
 </Window>

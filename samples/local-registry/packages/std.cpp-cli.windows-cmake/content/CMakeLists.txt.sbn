@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.20)
+
+project({{ project_name | cpp_identifier }} VERSION 0.1.0 LANGUAGES CXX)
+
+add_executable({{ project_name | cpp_identifier }}
+    src/main.cpp
+    src/cli/Arguments.cpp
+)
+
+target_compile_features({{ project_name | cpp_identifier }} PRIVATE cxx_std_{{ cpp_standard }})
+target_include_directories({{ project_name | cpp_identifier }} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+set_target_properties({{ project_name | cpp_identifier }} PROPERTIES
+    CXX_EXTENSIONS OFF
+)
+
+if(MSVC)
+    target_compile_options({{ project_name | cpp_identifier }} PRIVATE /W4 /permissive-)
+else()
+    target_compile_options({{ project_name | cpp_identifier }} PRIVATE -Wall -Wextra -Wpedantic)
+endif()

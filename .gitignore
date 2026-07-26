@@ -21,13 +21,17 @@ coverage.*
 .vscode/
 
 # NuGet and Klonker local caches
-packages/
+/packages/
 .nuget/
 .klonker/
 
 # Generated development output
 samples/generated-output/
 samples/**/generated-output/
+samples/official-registry-repository/dist/
+
+# Standalone repository maintained outside the Klonker application repository
+/klonkerdev/registry/
 
 # Operating-system metadata
 Thumbs.db

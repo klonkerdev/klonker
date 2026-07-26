@@ -10,4 +10,6 @@ public sealed record RegistryTemplateEntry(
     string TargetOs,
     string BuildSystem,
     string PackagePath,
-    string LicenseSummary);
+    string LicenseSummary,
+    string PackageSha256,
+    long PackageSizeBytes);

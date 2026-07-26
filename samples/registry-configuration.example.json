@@ -1,0 +1,18 @@
+{
+  "schema_version": 0,
+  "offline": false,
+  "sources": [
+    {
+      "name": "Personal templates",
+      "kind": "local",
+      "location": "D:\\templates\\my-registry\\registry.json",
+      "enabled": false
+    },
+    {
+      "name": "Klonker official templates",
+      "kind": "remote",
+      "location": "https://raw.githubusercontent.com/klonkerdev/registry/main/dist/registry.json",
+      "enabled": true
+    }
+  ]
+}

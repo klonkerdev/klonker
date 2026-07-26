@@ -5,19 +5,21 @@ Version zero is a local directory:
 ```text
 package-root/
   template.toml
+  template-logo.png  # optional
   content/
     ...
 ```
 
 ## Manifest
 
-All top-level properties below are required. `schema_version` must be integer
-`0`; all other top-level properties are non-empty strings.
+The identity, descriptive, target, build, and license properties below are
+required. `schema_version` must be integer `0`; the other required properties
+are non-empty strings.
 
 ```toml
 schema_version = 0
-id = "official.cpp-cli.windows-cmake"
-family_id = "official.cpp-cli"
+id = "std.cpp-cli.windows-cmake"
+family_id = "std.cpp-cli"
 variant_id = "windows-cmake"
 name = "C++ CLI"
 description = "A small Windows C++ command-line application using CMake."
@@ -26,6 +28,45 @@ target_os = "windows"
 build_system = "cmake"
 source_license = "MIT"
 ```
+
+Optional presentation metadata:
+
+```toml
+logo = "template-logo.png"
+tags = ["cli", "native", "starter", "cpp"]
+favorite = true
+```
+
+`logo` is a package-root-relative PNG, JPEG, or WebP path. It receives the
+same path normalization and containment checks as generated paths, may not be
+a reparse point, must exist, and is limited to 5 MiB. Desktop decodes it to a
+small card image and falls back to a generated language badge when it cannot
+be decoded.
+
+`tags` is an optional array of unique, case-insensitively compared labels.
+Each trimmed tag contains 1–40 visible characters. Tags are descriptive
+catalog metadata: arbitrary names such as `graphics`, `gamedev`, `gof2`, and
+`modding` do not affect rendering or grant capabilities.
+
+`favorite` is an optional boolean defaulting to `false`. It marks the initial
+favorite state; the current Desktop UI permits an in-memory user override but
+does not persist that override yet.
+
+Optional display-only prerequisites describe tools needed after Klonker has
+generated and detached the project:
+
+```toml
+[[prerequisites]]
+id = "cmake"
+name = "CMake 3.20 or later"
+description = "Required after generation to configure and build the project."
+required_for = "build"
+```
+
+Each prerequisite requires `id`, `name`, `description`, and `required_for`.
+IDs use the same identifier shape as parameter IDs and must be unique.
+`required_for` is `build`, `run`, or `development`. Klonker displays this
+information but does not probe, install, or execute the prerequisite.
 
 Each `[[parameters]]` table requires `id`, `type`, `label`, and `required`.
 `description`, `default`, and `validation` are optional. Parameter IDs must
@@ -94,8 +135,8 @@ modules, or slots.
 ```toml
 schema_version = 0
 
-id = "official.cpp-cli.windows-cmake"
-family_id = "official.cpp-cli"
+id = "std.cpp-cli.windows-cmake"
+family_id = "std.cpp-cli"
 variant_id = "windows-cmake"
 name = "C++ CLI"
 description = "A small Windows C++ command-line application using CMake."
@@ -103,6 +144,15 @@ version = "0.1.0"
 target_os = "windows"
 build_system = "cmake"
 source_license = "MIT"
+logo = "template-logo.png"
+tags = ["cli", "native", "starter", "cpp"]
+favorite = true
+
+[[prerequisites]]
+id = "cmake"
+name = "CMake 3.20 or later"
+description = "Required after generation to configure and build the C++ project."
+required_for = "build"
 
 [[parameters]]
 id = "project_name"

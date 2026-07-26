@@ -1,0 +1,53 @@
+#include "cli/Arguments.hpp"
+
+#include <iostream>
+#include <string_view>
+
+namespace
+{
+constexpr std::string_view ApplicationName = "{{ project_name }}";
+constexpr std::string_view ApplicationVersion = "0.1.0";
+
+void printHelp()
+{
+    std::cout
+        << ApplicationName << " - a small generated command-line application\n\n"
+        << "Usage: " << ApplicationName << " [options] [arguments]\n\n"
+        << "Options:\n"
+        << "  -h, --help     Show this help text\n"
+        << "      --version  Show the application version\n";
+}
+}
+
+int main(int argc, char* argv[])
+{
+    try
+    {
+        const auto arguments = cli::parseArguments(argc, argv);
+        if (arguments.showHelp)
+        {
+            printHelp();
+            return 0;
+        }
+
+        if (arguments.showVersion)
+        {
+            std::cout << ApplicationName << ' ' << ApplicationVersion << '\n';
+            return 0;
+        }
+
+        std::cout << "Hello from " << ApplicationName << "!\n";
+        for (const auto& positional : arguments.positional)
+        {
+            std::cout << "argument: " << positional << '\n';
+        }
+
+        return 0;
+    }
+    catch (const cli::ArgumentError& error)
+    {
+        std::cerr << "error: " << error.what() << "\n"
+                  << "Try '" << ApplicationName << " --help'.\n";
+        return 2;
+    }
+}

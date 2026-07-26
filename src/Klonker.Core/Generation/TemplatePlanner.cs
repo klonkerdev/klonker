@@ -131,6 +131,7 @@ public static class TemplatePlanner
             .ToImmutableArray();
         var directories = GetDirectories(orderedFiles);
         var identity = new TemplateIdentity(
+            package.RegistryId,
             package.Manifest.Id,
             package.Manifest.FamilyId,
             package.Manifest.VariantId,

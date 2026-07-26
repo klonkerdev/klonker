@@ -13,4 +13,8 @@ public sealed record TemplateManifest(
     string TargetOs,
     string BuildSystem,
     string SourceLicense,
-    ImmutableArray<TemplateParameterDefinition> Parameters);
+    ImmutableArray<TemplateParameterDefinition> Parameters,
+    string? Logo = null,
+    ImmutableArray<string> Tags = default,
+    bool IsFavorite = false,
+    ImmutableArray<TemplatePrerequisite> Prerequisites = default);
