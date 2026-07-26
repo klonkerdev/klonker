@@ -1,0 +1,19 @@
+{
+  "schema_version": 0,
+  "registry_id": "klonker.samples.local",
+  "display_name": "Klonker development samples",
+  "templates": [
+    {
+      "family_id": "official.cpp-cli",
+      "variant_id": "windows-cmake",
+      "template_id": "official.cpp-cli.windows-cmake",
+      "name": "C++ CLI",
+      "description": "A small Windows C++ command-line application using CMake.",
+      "version": "0.1.0",
+      "target_os": "windows",
+      "build_system": "cmake",
+      "package_path": "packages/official.cpp-cli.windows-cmake",
+      "license_summary": "Generated source: MIT"
+    }
+  ]
+}

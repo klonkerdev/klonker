@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Klonker.Core/Klonker.Core.csproj" />
+    <Project Path="src/Klonker.Desktop/Klonker.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Klonker.Core.Tests/Klonker.Core.Tests.csproj" />
+  </Folder>
+</Solution>
