@@ -145,7 +145,9 @@ events, ImGui menus, rendering hooks, campaign missions, custom content, and a
 modular all-in-one showcase;
 they use `build_system = "none"` and are published when the registry
 repository's updated `dist/` is pushed. New Klonker configurations use the
-published raw GitHub index directly.
+published raw GitHub index directly. Every GOF2 starter includes LuaLS API
+definitions, Visual Studio Code recommendations/settings, and portable
+`.luarc.json` configuration for ModAPI-aware completion and diagnostics.
 
 ## Security
 

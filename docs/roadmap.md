@@ -55,6 +55,8 @@
 - [x] publish language metadata in runtime manifests and registry indexes
 - [x] prepare six `gof2.modapi` Lua variants, including a modular all-in-one
   showcase, from the upstream ModAPI examples
+- [x] ship LuaLS autocomplete definitions and VS Code workspace setup with
+  every `gof2.modapi` variant
 - [x] add a validated self-contained Windows x64 nightly release workflow
 
 ## Next milestones

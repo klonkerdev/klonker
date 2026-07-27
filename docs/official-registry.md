@@ -104,6 +104,10 @@ bindings, and example mods. They reproduce its direct
 include the GPL text. Example `.aei` files are deliberately excluded because
 their accompanying notice attributes those assets to Fishlabs.
 
+Each GOF2 package also carries inert LuaLS definitions plus `.vscode` and
+`.luarc.json` configuration. These describe the API exposed by the upstream
+C++ bindings for completion and diagnostics; Klonker never executes them.
+
 ## Build publication artifacts
 
 In the standalone registry repository:
