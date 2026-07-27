@@ -26,14 +26,17 @@ The first generation and registry vertical slices are implemented:
   generation screen;
 - variant cards pair readable labels with host-owned platform and build-system
   logos for Windows, Linux, CMake, GNU Make, and xmake;
+- package cards show host-owned C++ or Lua language marks; variants that do
+  not use a build system present their own purpose instead of a meaningless
+  build badge;
 - the configuration screen provides generated parameter controls, the reusable
   project-tree control, and selectable rendered text;
 - optional package logos and arbitrary descriptive tags appear on package and
   variant cards, while session favorite toggles remain variant-specific;
 - custom tags use a distinct colored row and catalog filter; platform,
   language, and build metadata remain separate;
-- generated C++, CMake, Markdown, and configuration text uses a selectable,
-  read-only syntax-highlighted preview;
+- generated C++, Lua, CMake, Markdown, and configuration text uses a
+  selectable, read-only syntax-highlighted preview;
 - preview navigation includes direct file selection, previous/next actions,
   and expand/collapse-all controls;
 - copied known-text source files are strictly decoded as UTF-8 for preview
@@ -71,6 +74,20 @@ Klonker and belong to the user.
   sufficient
 
 No C++ compiler or CMake installation is needed to build or test Klonker.
+Generated C++ projects still require a compatible compiler toolchain when the
+user later chooses to build them.
+
+## Nightly Build
+
+Every successful push to `main` validates the repository and replaces the
+[`nightly` prerelease](https://github.com/klonkerdev/klonker/releases/tag/nightly)
+asset with a self-contained Windows x64 executable:
+`Klonker-nightly-win-x64.exe`.
+
+Nightlies are unsigned development snapshots. Windows may show a SmartScreen
+warning, and no stability guarantee is implied. The release notes include the
+source commit and SHA-256 digest. The executable does not require a separately
+installed .NET runtime.
 
 ## Develop locally
 
@@ -123,7 +140,11 @@ and positional arguments. The checked-in sample is test and development data;
 the production catalog is maintained separately in the
 [`klonkerdev/registry`](https://github.com/klonkerdev/registry) repository and
 currently publishes Windows/Linux variants for CMake, GNU Make, and xmake.
-New Klonker configurations use its published raw GitHub index directly.
+The prepared registry source also contains five `gof2.modapi` Lua starters for
+events, ImGui menus, rendering hooks, campaign missions, and custom content;
+they use `build_system = "none"` and are published when the registry
+repository's updated `dist/` is pushed. New Klonker configurations use the
+published raw GitHub index directly.
 
 ## Security
 
@@ -131,10 +152,12 @@ Template packages are untrusted. Klonker rejects unsafe and colliding Windows
 paths and version zero rejects symbolic links/reparse points. Scriban receives
 only declared primitive values and six deterministic Klonker string helpers;
 it receives no filesystem, environment, network, process, reflection, clock,
-or random access. Templates cannot supply commands or scripts. Remote
-registries are HTTPS-only; packages are size-limited, SHA-256 verified, and
-extracted through the same Windows path-safety boundary. Checksums provide
-integrity, not publisher authentication.
+or random access. Manifests cannot request generator commands, setup scripts,
+or lifecycle hooks. A template may contain source-code files such as Lua, but
+Klonker treats them as data and never executes them. Remote registries are
+HTTPS-only; packages are size-limited, SHA-256 verified, and extracted through
+the same Windows path-safety boundary. Checksums provide integrity, not
+publisher authentication.
 
 ## Documentation
 
@@ -150,8 +173,8 @@ integrity, not publisher authentication.
 
 ## Short roadmap
 
-Next, add persistent favorite preferences, registry management UI, signed
-registry trust policy, and more official template families. WSL generation,
-modules, and agent integrations remain deferred.
+Next, push the prepared GOF2 registry artifacts, add persistent favorite
+preferences and registry management UI, and define a signed-registry trust
+policy. WSL generation, modules, and agent integrations remain deferred.
 
 Klonker is licensed under the [MIT License](LICENSE).

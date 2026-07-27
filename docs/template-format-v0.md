@@ -13,8 +13,9 @@ package-root/
 ## Manifest
 
 The identity, descriptive, target, build, and license properties below are
-required. `schema_version` must be integer `0`; the other required properties
-are non-empty strings.
+required. `language` is the sole compatibility-optional field in this block.
+`schema_version` must be integer `0`; the other required properties are
+non-empty strings.
 
 ```toml
 schema_version = 0
@@ -26,8 +27,15 @@ description = "A small Windows C++ command-line application using CMake."
 version = "0.1.0"
 target_os = "windows"
 build_system = "cmake"
+language = "cpp"
 source_license = "MIT"
 ```
+
+`language` is a lowercase identifier such as `cpp` or `lua`. It is optional
+for compatibility with early version-zero packages and defaults to `unknown`;
+new packages should always declare it. Desktop uses the value for language
+filters and host-owned language marks. `build_system` remains required; use
+the explicit value `none` when generation has no build-system concept.
 
 Optional presentation metadata:
 
@@ -127,8 +135,9 @@ Source packages and rendered paths are untrusted. Version zero rejects:
 Containment is checked again when source and staging paths are resolved.
 Scriban receives no default builtin object, filesystem, environment, network,
 process, reflection, clock, random, dynamic loading, or arbitrary .NET
-methods. Templates cannot define hooks, commands, patches, regex rewrites,
-modules, or slots.
+methods. Template manifests cannot define render-time hooks, commands,
+patches, regex rewrites, modules, or slots. Payload source code is inert data;
+Klonker never executes generated Lua, shell, build, or application code.
 
 ## Complete example
 
@@ -143,6 +152,7 @@ description = "A small Windows C++ command-line application using CMake."
 version = "0.1.0"
 target_os = "windows"
 build_system = "cmake"
+language = "cpp"
 source_license = "MIT"
 logo = "template-logo.png"
 tags = ["cli", "native", "starter", "cpp"]

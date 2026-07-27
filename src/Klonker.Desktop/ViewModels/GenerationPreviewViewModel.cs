@@ -212,7 +212,8 @@ public sealed partial class GenerationPreviewViewModel : ViewModelBase
             extension.Equals(".c", StringComparison.OrdinalIgnoreCase) ||
             extension.Equals(".hpp", StringComparison.OrdinalIgnoreCase) ||
             extension.Equals(".h", StringComparison.OrdinalIgnoreCase) ||
-            extension.Equals(".cs", StringComparison.OrdinalIgnoreCase))
+            extension.Equals(".cs", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".lua", StringComparison.OrdinalIgnoreCase))
         {
             return ProjectTreeIconKind.Code;
         }

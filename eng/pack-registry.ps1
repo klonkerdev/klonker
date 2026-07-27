@@ -202,7 +202,9 @@ function Get-TomlStringArray {
         [string] $Property,
 
         [Parameter(Mandatory)]
-        [string] $Context
+        [string] $Context,
+
+        [switch] $Optional
     )
 
     $topLevel = Get-TomlTopLevel -Toml $Toml
@@ -210,6 +212,10 @@ function Get-TomlStringArray {
     $matches = [System.Text.RegularExpressions.Regex]::Matches(
         $topLevel,
         "(?m)^\s*$escapedProperty\s*=\s*(\[[^\r\n]*\])\s*(?:#.*)?$")
+    if ($matches.Count -eq 0 -and $Optional) {
+        return [string[]] @()
+    }
+
     if ($matches.Count -ne 1) {
         throw "$Context must declare exactly one top-level '$Property' string array."
     }
@@ -510,6 +516,9 @@ function New-RuntimeManifest {
         [string] $BuildSystem,
 
         [Parameter(Mandatory)]
+        [string] $Language,
+
+        [Parameter(Mandatory)]
         [string] $SourceLicense,
 
         [string] $Logo,
@@ -540,6 +549,7 @@ function New-RuntimeManifest {
     $lines.Add('')
     $lines.Add("target_os = $(ConvertTo-TomlString -Value $TargetOs)")
     $lines.Add("build_system = $(ConvertTo-TomlString -Value $BuildSystem)")
+    $lines.Add("language = $(ConvertTo-TomlString -Value $Language)")
     $lines.Add('')
     $lines.Add("source_license = $(ConvertTo-TomlString -Value $SourceLicense)")
     if (-not [string]::IsNullOrWhiteSpace($Logo)) {
@@ -683,6 +693,11 @@ try {
             -Toml $packageToml `
             -Property 'source_license' `
             -Context $packageContext
+        $language = Get-TomlString `
+            -Toml $packageToml `
+            -Property 'language' `
+            -Context $packageContext
+        Assert-Identifier -Value $language -Context 'Language ID'
         $licenseSummary = Get-TomlString `
             -Toml $packageToml `
             -Property 'license_summary' `
@@ -780,6 +795,19 @@ try {
                 -Toml $variantToml `
                 -Property 'favorite' `
                 -Context $variantContext
+            $variantTags = Get-TomlStringArray `
+                -Toml $variantToml `
+                -Property 'tags' `
+                -Context $variantContext `
+                -Optional
+            $runtimeTags = [System.Collections.Generic.List[string]]::new()
+            $seenTags = [System.Collections.Generic.HashSet[string]]::new(
+                [System.StringComparer]::OrdinalIgnoreCase)
+            foreach ($tag in @($tags) + @($variantTags)) {
+                if ($seenTags.Add($tag)) {
+                    $runtimeTags.Add($tag)
+                }
+            }
             $variantTables = Get-TomlTableText `
                 -Toml $variantToml `
                 -AllowedTables @('parameters', 'prerequisites') `
@@ -802,9 +830,10 @@ try {
                 -Version $version `
                 -TargetOs $targetOs `
                 -BuildSystem $buildSystem `
+                -Language $language `
                 -SourceLicense $sourceLicense `
                 -Logo $logo `
-                -Tags $tags `
+                -Tags $runtimeTags.ToArray() `
                 -Favorite $favorite `
                 -PackageTables $packageTables `
                 -VariantTables $variantTables
@@ -860,6 +889,7 @@ try {
                 version = $version
                 target_os = $targetOs
                 build_system = $buildSystem
+                language = $language
                 package_path = "packages/$archiveName"
                 license_summary = $licenseSummary
                 package_sha256 = $checksum

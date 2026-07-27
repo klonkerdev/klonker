@@ -42,6 +42,25 @@ Scripts:
 - `eng/pack-registry.ps1`: discover hierarchical namespace/package/variant
   TOML sources and create deterministic ZIPs plus registry version 1 output.
 
+The main repository's `Nightly Build` workflow runs validation on every push
+to `main`, publishes Desktop as a self-contained single-file Windows x64
+executable, uploads a short-lived workflow artifact, and replaces the stable
+`nightly` prerelease asset. To reproduce the publish stage locally:
+
+```powershell
+dotnet publish .\src\Klonker.Desktop\Klonker.Desktop.csproj `
+  --configuration Release `
+  --runtime win-x64 `
+  --self-contained true `
+  -p:PublishSingleFile=true `
+  -p:IncludeNativeLibrariesForSelfExtract=true `
+  -p:PublishTrimmed=false
+```
+
+GitHub supplies `GITHUB_TOKEN`; no personal secret is required. Repository or
+organization policy must permit Actions to write repository contents so the
+workflow can move the `nightly` tag and update its prerelease.
+
 ## Registry configuration and development lookup
 
 On first startup, Desktop creates:
@@ -84,7 +103,9 @@ the diff.
 
 ## Add a local sample package
 
-1. Add `samples/local-registry/packages/<package-id>/template.toml`.
+1. Add `samples/local-registry/packages/<package-id>/template.toml`, including
+   a lowercase `language` identifier and an explicit build system (`none` is
+   valid).
 2. Put template payload under its `content/` directory.
 3. Calculate its canonical integrity metadata:
 

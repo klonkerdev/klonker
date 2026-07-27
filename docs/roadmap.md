@@ -21,6 +21,8 @@
 - [x] confirm a package before filling its dedicated variant list
 - [x] confirm a variant before opening configuration, preview, and generation
 - [x] render platform/build-system marks on known variant cards
+- [x] render language marks on package cards and omit build marks for
+      `build_system = "none"`
 - [x] use custom charcoal window chrome and the Klonker logo asset
 - [x] use host-owned vector icons instead of font glyphs for UI actions
 - [x] show generated configuration controls
@@ -50,6 +52,9 @@
 - [x] prepare deterministic publishing artifacts for a separate registry repo
 - [x] prepare the standalone `klonkerdev/registry` source, CI, and distribution
 - [x] discover hierarchical namespace/package/variant registry sources
+- [x] publish language metadata in runtime manifests and registry indexes
+- [x] prepare five `gof2.modapi` Lua variants from the upstream ModAPI examples
+- [x] add a validated self-contained Windows x64 nightly release workflow
 
 ## Next milestones
 
@@ -60,6 +65,7 @@
 - [x] validate a clean online download and zero-network cached replay
 - [ ] protect the registry `main` branch with required validation and review
 - [x] add Windows/Linux CMake, GNU Make, and xmake C++ CLI variants
+- [ ] push the prepared GOF2 ModAPI source and regenerated distribution
 - [ ] add active, consented prerequisite probes without installing tools
 
 ## Deferred
@@ -67,6 +73,6 @@
 - [ ] advanced registry conflict/version-selection policy
 - [ ] generation inside a selected WSL distribution
 - [ ] reusable modules/slots and dependency-license aggregation
-- [ ] additional official template families in a separate repository
+- [ ] additional official template families in the separate registry
 - [ ] plugins, MCP, or coding-agent integration
 - [ ] any project build, execution, import, update, or management behavior

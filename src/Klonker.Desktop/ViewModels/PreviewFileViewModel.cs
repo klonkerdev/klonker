@@ -57,6 +57,7 @@ public sealed class PreviewFileViewModel
             ".c" or ".cc" or ".cpp" or ".cxx" or
             ".h" or ".hh" or ".hpp" or ".hxx" or
             ".cs" or ".fs" or ".vb" or
+            ".lua" or
             ".cmake" or ".md" or ".txt" or
             ".json" or ".toml" or ".yaml" or ".yml" or ".xml" or
             ".csproj" or ".fsproj" or ".vbproj" or ".props" or ".targets";

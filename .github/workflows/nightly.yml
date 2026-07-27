@@ -1,0 +1,126 @@
+name: Nightly Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-release
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    name: Validate and publish Windows nightly
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Validate repository
+        shell: pwsh
+        run: ./eng/validate.ps1
+
+      - name: Publish self-contained Windows executable
+        shell: pwsh
+        run: |
+          $publishRoot = Join-Path $env:RUNNER_TEMP 'klonker-nightly'
+          dotnet publish ./src/Klonker.Desktop/Klonker.Desktop.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output $publishRoot `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:PublishTrimmed=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:Version="0.1.0-nightly.$env:GITHUB_RUN_NUMBER"
+          if ($LASTEXITCODE -ne 0) {
+            throw "dotnet publish failed with exit code $LASTEXITCODE."
+          }
+
+          $source = Join-Path $publishRoot 'Klonker.Desktop.exe'
+          if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            throw "The expected single-file executable '$source' was not produced."
+          }
+
+          $artifactRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts/nightly'
+          New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
+          $destination = Join-Path $artifactRoot 'Klonker-nightly-win-x64.exe'
+          Copy-Item -LiteralPath $source -Destination $destination
+          $checksum = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).
+            Hash.ToLowerInvariant()
+          "sha256=$checksum" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        id: publish
+
+      - name: Retain workflow artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: Klonker-nightly-win-x64
+          path: artifacts/nightly/Klonker-nightly-win-x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Update Nightly Build release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NIGHTLY_SHA256: ${{ steps.publish.outputs.sha256 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          git tag --force nightly $env:GITHUB_SHA
+          git push origin refs/tags/nightly --force
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not update the nightly tag."
+          }
+
+          $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+          $notes = @"
+          Automated Windows x64 build from commit ``$shortSha``.
+
+          This is an unsigned development snapshot. It may be unstable and
+          Windows can display a SmartScreen warning.
+
+          SHA-256: ``$env:NIGHTLY_SHA256``
+          "@
+
+          gh release view nightly --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release edit nightly `
+              --repo $env:GITHUB_REPOSITORY `
+              --title 'Klonker Nightly Build' `
+              --notes $notes `
+              --prerelease
+          }
+          else {
+            gh release create nightly `
+              --repo $env:GITHUB_REPOSITORY `
+              --title 'Klonker Nightly Build' `
+              --notes $notes `
+              --prerelease
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not create or update the nightly release."
+          }
+
+          gh release upload nightly `
+            ./artifacts/nightly/Klonker-nightly-win-x64.exe `
+            --repo $env:GITHUB_REPOSITORY `
+            --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not upload the nightly executable."
+          }

@@ -15,8 +15,26 @@ public sealed class ManifestParsingTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal("test.console.windows", result.Value!.Manifest.Id);
+        Assert.Equal("cpp", result.Value.Manifest.Language);
         Assert.Equal(2, result.Value.Manifest.Parameters.Length);
         Assert.Equal(TemplateParameterType.Choice, result.Value.Manifest.Parameters[1].Type);
+    }
+
+    [Fact]
+    public void Load_InvalidLanguageId_ReturnsError()
+    {
+        var manifest = TestManifests.Valid.Replace(
+            "language = \"cpp\"",
+            "language = \"C++\"",
+            StringComparison.Ordinal);
+        using var package = new TestPackage(manifest);
+
+        var result = TemplatePackageLoader.Load(package.RootPath);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "manifest.language_invalid");
     }
 
     [Fact]

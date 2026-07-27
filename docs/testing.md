@@ -19,7 +19,8 @@
   navigation, filters, platform/build-system presentation, tree construction,
   independent folder expansion, semantic file-icon classification, tree
   selection, manifest presentation metadata, syntax tokenization, favorites,
-  custom-tag filtering/color assignment, strict copied-source decoding, and
+  language presentation, no-build-system variants, custom-tag
+  filtering/color assignment, strict copied C++/Lua source decoding, and
   preview behavior, destination picking, explicit generation confirmation,
   structured diagnostics, prerequisites, and preview navigation without
   launching Avalonia windows.
@@ -50,7 +51,9 @@ separator injection, and safe nesting. Reparse-point behavior should be tested
 where the test host can create links without elevation.
 
 Planning tests compare ordered paths and immutable bytes across runs and assert
-expected sample CMake and C++ content. Executor tests assert no overwrite and
+expected sample CMake and C++ content. Lua preview tests cover copied-source
+decoding, code-tree classification, and host-owned syntax tokenization.
+Executor tests assert no overwrite and
 that no output escapes the destination. Registry archive tests must include
 traversal, case collisions, file/directory collisions, links where practical,
 checksum mismatch, and offline cache misses.

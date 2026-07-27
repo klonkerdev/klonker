@@ -25,6 +25,7 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
         RegistryName = first.RegistryName;
         Family = first.Family;
         Name = first.Name;
+        LanguageId = first.LanguageId;
         Language = first.Language;
         Badge = first.Badge;
         Logo = LoadLogo(first.Package.LogoPath);
@@ -38,8 +39,20 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
             .Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToArray();
-        Tags = Variants
+        RealBuildSystems = Variants
+            .Where(variant => variant.HasBuildSystem)
+            .Select(variant => variant.BuildSystem)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        AllTags = Variants
             .SelectMany(variant => variant.Tags)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Tags = Variants[0].Tags
+            .Where(tag => Variants.All(variant =>
+                variant.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -60,9 +73,17 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
 
     public string Name { get; }
 
+    public string LanguageId { get; }
+
     public string Language { get; }
 
     public string Badge { get; }
+
+    public bool IsCpp => LanguageId == "cpp";
+
+    public bool IsLua => LanguageId == "lua";
+
+    public bool HasKnownLanguageIcon => IsCpp || IsLua;
 
     public Bitmap? Logo { get; }
 
@@ -72,7 +93,15 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
 
     public IReadOnlyList<string> BuildSystems { get; }
 
+    public IReadOnlyList<string> RealBuildSystems { get; }
+
+    public bool HasBuildSystems => RealBuildSystems.Count > 0;
+
+    public int PlatformColumnSpan => HasBuildSystems ? 1 : 2;
+
     public IReadOnlyList<string> Tags { get; }
+
+    public IReadOnlyList<string> AllTags { get; }
 
     public IReadOnlyList<TemplateTagViewModel> TagChips { get; }
 
@@ -89,7 +118,9 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
 
     public string PlatformSummary => string.Join(" · ", Platforms);
 
-    public string BuildSystemSummary => string.Join(" · ", BuildSystems);
+    public string BuildSystemSummary => HasBuildSystems
+        ? string.Join(" · ", RealBuildSystems)
+        : "No build system";
 
     public bool MatchesVariantFilters(
         string selectedLanguage,
@@ -117,7 +148,7 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
             platform.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
         BuildSystems.Any(buildSystem =>
             buildSystem.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
-        Tags.Any(tag =>
+        AllTags.Any(tag =>
             tag.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
         Variants.Any(variant =>
             variant.Description.Contains(

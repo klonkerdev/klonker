@@ -19,6 +19,8 @@ templates/<namespace>/<package>/
 
 No manually maintained template array is required. The official C++ example
 uses `templates/std/cpp-cli/variants/<platform>-<build-system>`.
+Each package declares a lowercase language ID. Variants declare an explicit
+build system; use `none` when no build-system concept applies.
 
 From the Klonker application repository, produce deterministic publication
 artifacts in a new directory:

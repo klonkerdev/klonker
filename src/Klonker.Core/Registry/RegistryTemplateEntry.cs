@@ -12,4 +12,5 @@ public sealed record RegistryTemplateEntry(
     string PackagePath,
     string LicenseSummary,
     string PackageSha256,
-    long PackageSizeBytes);
+    long PackageSizeBytes,
+    string Language = "unknown");

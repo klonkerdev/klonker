@@ -87,7 +87,9 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public string CatalogStageDescription =>
         IsPackageSelection
             ? "Choose a project family, then confirm to inspect its variants."
-            : $"Choose the platform and build system for {SelectedPackage?.Name ?? "this package"}.";
+            : SelectedPackage?.HasBuildSystems == true
+                ? $"Choose the platform and build system for {SelectedPackage.Name}."
+                : $"Choose the {SelectedPackage?.Name ?? "package"} starter that matches what you want to create.";
 
     public string CatalogItemCountText =>
         IsPackageSelection

@@ -12,10 +12,11 @@
       "version": "0.1.0",
       "target_os": "windows",
       "build_system": "cmake",
+      "language": "cpp",
       "package_path": "packages/std.cpp-cli.windows-cmake",
       "license_summary": "Generated source: MIT",
-      "package_sha256": "a853b2dd642f79c260d063faf722a9ffb1fb3e97c65d3c317b39832cb182d0c7",
-      "package_size_bytes": 923400
+      "package_sha256": "cbe84286e7484473bedbaec84d69e19ff215a90eb0b0b2058c8c2eb5e79dff70",
+      "package_size_bytes": 923417
     }
   ]
 }

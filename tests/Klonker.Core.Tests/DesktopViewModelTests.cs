@@ -130,6 +130,35 @@ public sealed class DesktopViewModelTests
     }
 
     [Fact]
+    public void Preview_CopiedLuaFileIsTextAndUsesCodeTreeIcon()
+    {
+        const string source = "local loaded = true\n-- ModAPI starter";
+        var file = new PlannedFile(
+            "init.lua",
+            TestPackage.Text(source).ToImmutableArray(),
+            IsText: false,
+            TextContent: null,
+            SourceTemplatePath: "init.lua");
+        var plan = new GenerationPlan(
+            new TemplateIdentity(
+                "tests",
+                "gof2.modapi.event-starter",
+                "gof2.modapi",
+                "event-starter",
+                "0.1.0"),
+            [],
+            [file],
+            []);
+
+        var preview = new GenerationPreviewViewModel(plan);
+
+        Assert.Equal(source, Assert.Single(preview.Files).Content);
+        Assert.Equal(
+            ProjectTreeIconKind.Code,
+            Assert.Single(preview.TreeNodes).IconKind);
+    }
+
+    [Fact]
     public async Task Preview_CollapsingFolderDoesNotCollapseSiblingOrChildFolders()
     {
         var viewModel = CreateLoadedViewModel();
@@ -229,6 +258,56 @@ public sealed class DesktopViewModelTests
 
         Assert.False(template.IsFavorite);
         Assert.True(template.Package.Manifest.IsFavorite);
+    }
+
+    [Fact]
+    public void TemplateCard_LuaVariantWithoutBuildSystemUsesVariantIdentity()
+    {
+        var manifest = TestManifests.Valid
+            .Replace("id = \"test.console.windows\"", "id = \"gof2.modapi.imgui-menu\"")
+            .Replace("family_id = \"test.console\"", "family_id = \"gof2.modapi\"")
+            .Replace("variant_id = \"windows\"", "variant_id = \"imgui-menu\"")
+            .Replace("name = \"Test Console\"", "name = \"GOF2 ModAPI\"")
+            .Replace("build_system = \"cmake\"", "build_system = \"none\"")
+            .Replace("language = \"cpp\"", "language = \"lua\"");
+        using var testPackage = new TestPackage(
+            manifest,
+            new Dictionary<string, byte[]>
+            {
+                ["init.lua"] = TestPackage.Text("print('loaded')"),
+            });
+        var package = testPackage.Load() with { RegistryId = "tests" };
+        var template = new RegistryTemplatePackage(
+            "tests",
+            "Test registry",
+            new RegistryTemplateEntry(
+                package.Manifest.FamilyId,
+                package.Manifest.VariantId,
+                package.Manifest.Id,
+                package.Manifest.Name,
+                package.Manifest.Description,
+                package.Manifest.Version,
+                package.Manifest.TargetOs,
+                package.Manifest.BuildSystem,
+                "packages/test.zip",
+                package.Manifest.SourceLicense,
+                new string('0', 64),
+                1,
+                package.Manifest.Language),
+            package);
+
+        var variant = new TemplateListItemViewModel(template);
+        using var family = new PackageListItemViewModel([variant]);
+
+        Assert.Equal("Lua", variant.Language);
+        Assert.True(variant.IsLua);
+        Assert.False(variant.HasBuildSystem);
+        Assert.Equal("ImGui Menu", variant.VariantDisplayName);
+        Assert.Equal("Windows", variant.Metadata);
+        Assert.Equal(2, variant.PlatformColumnSpan);
+        Assert.False(family.HasBuildSystems);
+        Assert.Equal("No build system", family.BuildSystemSummary);
+        Assert.Equal(2, family.PlatformColumnSpan);
     }
 
     [Fact]
@@ -427,6 +506,28 @@ public sealed class DesktopViewModelTests
         Assert.Contains(
             markdown,
             token => token.Kind == SyntaxTokenKind.StringLiteral);
+    }
+
+    [Fact]
+    public void SyntaxHighlighter_LuaPreservesTextAndClassifiesModApiCalls()
+    {
+        const string source =
+            "local loaded = false\nRegisterEvent(\"IsInGame\", function()\n" +
+            "  loaded = true -- once\nend)";
+
+        var tokens = SyntaxHighlighter.Highlight(source, "init.lua");
+
+        Assert.Equal(source, string.Concat(tokens.Select(token => token.Text)));
+        Assert.Equal("Lua", SyntaxHighlighter.GetLanguageName("init.lua"));
+        Assert.Contains(
+            tokens,
+            token => token.Kind == SyntaxTokenKind.Keyword &&
+                     token.Text.Contains("local", StringComparison.Ordinal));
+        Assert.Contains(
+            tokens,
+            token => token.Kind == SyntaxTokenKind.Function &&
+                     token.Text.Contains("RegisterEvent", StringComparison.Ordinal));
+        Assert.Contains(tokens, token => token.Kind == SyntaxTokenKind.Comment);
     }
 
     private static MainViewModel CreateLoadedViewModel(

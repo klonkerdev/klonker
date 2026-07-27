@@ -10,9 +10,9 @@ empty directory.
 Klonker does not build, run, update, import, or manage generated projects. It
 does not install SDKs, initialize Git, execute template scripts, or merge into
 non-empty trees. Local/HTTPS registries, package integrity checks, offline
-caching, preview, and transactional Windows generation are implemented. WSL
-generation, signatures, modules, and production official-template publication
-are planned. Generated projects are fully detached from Klonker.
+caching, preview, transactional Windows generation, and the external official
+registry are implemented. WSL generation, signatures, and modules are planned.
+Generated projects are fully detached from Klonker.
 
 ## Repository structure
 
@@ -70,8 +70,10 @@ Run `eng/validate.ps1` before declaring work complete.
 Treat registries and packages as untrusted input. Scriban receives only
 declared primitive values and Klonker-owned deterministic helpers. Never expose
 filesystem, environment, network, clock, random, reflection, process, or
-arbitrary .NET access. Never execute template-provided commands, hooks,
-scripts, build tools, or generated programs.
+arbitrary .NET access. Never execute template-provided commands, generator
+hooks, setup scripts, build tools, source-code payloads, or generated
+programs. Templates may generate source such as Lua, but it remains inert data
+to Klonker.
 
 Validate source and rendered paths using both `/` and `\` as separators.
 Reject rooted, UNC, drive-qualified, traversal, NUL-containing, invalid, and

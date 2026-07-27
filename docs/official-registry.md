@@ -11,15 +11,19 @@ The canonical machine-readable index is:
 https://raw.githubusercontent.com/klonkerdev/registry/main/dist/registry.json
 ```
 
-The endpoint is live. Klonker's Core catalog service has been exercised against
-a fresh temporary cache, downloaded and verified all six packages, and then
-loaded the same catalog in offline mode through an HTTP client that rejected
-every request.
+The endpoint is live and serves the most recently pushed `dist/`. The prepared
+registry checkout has been loaded directly through Klonker's Core catalog
+service as a local registry: all 11 packages passed checksum/extraction, five
+`gof2.modapi` variants were discovered as Lua/no-build templates, and the
+ImGui variant produced a valid generation plan.
 
-The prepared catalog currently contains six independently versioned variants
-in the `std.cpp-cli` family: CMake, GNU Make, and xmake for both Windows
-and Linux. The application repository's checked-in development sample remains
-the Windows CMake variant only.
+The prepared catalog contains six independently versioned `std.cpp-cli`
+variants (CMake, GNU Make, and xmake for Windows and Linux) plus five
+`gof2.modapi` Lua variants (event starter, ImGui menu, render hook, campaign
+mission, and custom content). The application repository's checked-in
+development sample remains the Windows CMake variant only. The new GOF2
+entries become available from the public endpoint after the regenerated
+registry `dist/` is pushed.
 
 ## Source repository layout
 
@@ -38,11 +42,21 @@ templates/
           variant.toml
           content/
       template-logo.png
+  gof2/
+    modapi/
+      package.toml
+      content/LICENSE.txt
+      variants/
+        event-starter/
+        imgui-menu/
+        render-hook/
+        campaign-mission/
+        custom-content/
 dist/
   registry.json
   packages/
-    std.cpp-cli.linux-cmake-0.1.0.zip
-    std.cpp-cli.windows-cmake-0.1.0.zip
+    std.cpp-cli.linux-cmake-0.1.1.zip
+    std.cpp-cli.windows-cmake-0.1.1.zip
 ```
 
 `registry.toml` contains only registry authority metadata. The publisher
@@ -50,9 +64,10 @@ recursively discovers `templates/<namespace>/<package>/package.toml` and
 `variants/<variant>/variant.toml`. It derives family and template IDs from
 those folders; there is no handwritten catalog array.
 
-`package.toml` owns shared presentation, licensing, tags, parameters, assets,
-and reusable content. `variant.toml` owns target OS, build system, version,
-prerequisites, and variant content. For example:
+`package.toml` owns shared language/presentation metadata, licensing, tags,
+parameters, assets, and reusable content. `variant.toml` owns target OS, build
+system, version, variant tags, prerequisites, and variant content. For
+example:
 
 ```text
 templates/std/cpp-cli/variants/linux-cmake
@@ -76,9 +91,17 @@ into a runtime ZIP containing a generated `template.toml`. Shared and variant
 paths may not collide. `dist/` is deterministically generated and committed so
 GitHub raw content can serve it.
 
-Do not put hooks, executables to run, build commands, or arbitrary scripts in
-packages. Registry review should treat every path and rendered expression as
-untrusted.
+Do not put generator lifecycle hooks, setup executables, or commands for
+Klonker to run in packages. Source-code payloads such as the GOF2 Lua starters
+remain inert data during planning and generation; Klonker never executes them.
+Registry review should treat every path and rendered expression as untrusted.
+
+The GOF2 starters were derived from the GPL-3.0-only
+[`KaamoClubModApi`](https://github.com/1337Skid/KaamoClubModApi) loader,
+bindings, and example mods. They reproduce its direct
+`mods/<mod-id>/init.lua` layout and lifecycle rules. The generated packages
+include the GPL text. Example `.aei` files are deliberately excluded because
+their accompanying notice attributes those assets to Fishlabs.
 
 ## Build publication artifacts
 
@@ -113,6 +136,8 @@ Publication status:
 
 - [x] push the prepared repository to `klonkerdev/registry`;
 - [x] test a clean online download and a fully offline cached load;
+- [x] test the expanded 11-entry distribution as a local Klonker registry;
+- [ ] push the GOF2 source and regenerated 11-entry `dist/`;
 - [ ] protect `main` and require the validation workflow and review;
 - [ ] retain a documented license-review gate for every generated source
   package;

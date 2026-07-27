@@ -50,6 +50,14 @@ public static class SyntaxHighlighter
         ],
         StringComparer.OrdinalIgnoreCase);
 
+    private static readonly HashSet<string> LuaKeywords = new(
+        [
+            "and", "break", "do", "else", "elseif", "end", "false", "for",
+            "function", "goto", "if", "in", "local", "nil", "not", "or",
+            "repeat", "return", "then", "true", "until", "while",
+        ],
+        StringComparer.Ordinal);
+
     public static IReadOnlyList<SyntaxToken> Highlight(string? text, string? fileName)
     {
         if (string.IsNullOrEmpty(text))
@@ -78,6 +86,7 @@ public static class SyntaxHighlighter
         DetectLanguage(fileName) switch
         {
             SyntaxLanguage.Cpp => "C++",
+            SyntaxLanguage.Lua => "Lua",
             SyntaxLanguage.CMake => "CMake",
             SyntaxLanguage.Markdown => "Markdown",
             SyntaxLanguage.Configuration => "Config",
@@ -97,6 +106,7 @@ public static class SyntaxHighlighter
         {
             ".c" or ".cc" or ".cpp" or ".cxx" or ".h" or ".hh" or ".hpp" or ".hxx" =>
                 SyntaxLanguage.Cpp,
+            ".lua" => SyntaxLanguage.Lua,
             ".md" or ".markdown" => SyntaxLanguage.Markdown,
             ".json" or ".toml" or ".yaml" or ".yml" or ".xml" =>
                 SyntaxLanguage.Configuration,
@@ -246,6 +256,8 @@ public static class SyntaxHighlighter
         {
             SyntaxLanguage.Cpp =>
                 index + 1 < line.Length && line[index] == '/' && line[index + 1] == '/',
+            SyntaxLanguage.Lua =>
+                index + 1 < line.Length && line[index] == '-' && line[index + 1] == '-',
             SyntaxLanguage.CMake or SyntaxLanguage.Configuration => line[index] == '#',
             _ => false,
         };
@@ -308,6 +320,18 @@ public static class SyntaxHighlighter
                 : SyntaxTokenKind.Plain;
         }
 
+        if (language == SyntaxLanguage.Lua)
+        {
+            if (LuaKeywords.Contains(word))
+            {
+                return SyntaxTokenKind.Keyword;
+            }
+
+            return NextNonWhitespace(line, wordEnd) == '('
+                ? SyntaxTokenKind.Function
+                : SyntaxTokenKind.Plain;
+        }
+
         if (language == SyntaxLanguage.Configuration)
         {
             if (word is "true" or "false" or "null")
@@ -361,6 +385,7 @@ public static class SyntaxHighlighter
     {
         Plain,
         Cpp,
+        Lua,
         CMake,
         Markdown,
         Configuration,

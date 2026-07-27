@@ -10,6 +10,7 @@ version = "0.1.0"
 
 target_os = "windows"
 build_system = "cmake"
+language = "cpp"
 
 source_license = "MIT"
 logo = "template-logo.png"

@@ -116,6 +116,15 @@ public static partial class RegistryIndexLoader
                     sourceDescription));
             }
 
+            if (!string.IsNullOrWhiteSpace(item.Language) &&
+                !LanguageIdRegex().IsMatch(item.Language))
+            {
+                issues.Add(Error(
+                    "registry.language_invalid",
+                    $"Registry property '{context}.language' must be a lowercase language ID.",
+                    sourceDescription));
+            }
+
             if (HasRequiredProperties(item) &&
                 Sha256Regex().IsMatch(item.PackageSha256!) &&
                 item.PackageSizeBytes > 0)
@@ -132,7 +141,10 @@ public static partial class RegistryIndexLoader
                     item.PackagePath!.Replace('\\', '/'),
                     item.LicenseSummary!,
                     item.PackageSha256!.ToLowerInvariant(),
-                    item.PackageSizeBytes));
+                    item.PackageSizeBytes,
+                    string.IsNullOrWhiteSpace(item.Language)
+                        ? "unknown"
+                        : item.Language));
             }
         }
 
@@ -190,6 +202,9 @@ public static partial class RegistryIndexLoader
     [GeneratedRegex(@"\A[0-9a-fA-F]{64}\z", RegexOptions.CultureInvariant)]
     private static partial Regex Sha256Regex();
 
+    [GeneratedRegex(@"\A[a-z][a-z0-9-]*\z", RegexOptions.CultureInvariant)]
+    private static partial Regex LanguageIdRegex();
+
     private sealed class RegistryDto
     {
         [JsonPropertyName("schema_version")]
@@ -230,6 +245,9 @@ public static partial class RegistryIndexLoader
 
         [JsonPropertyName("build_system")]
         public string? BuildSystem { get; init; }
+
+        [JsonPropertyName("language")]
+        public string? Language { get; init; }
 
         [JsonPropertyName("package_path")]
         public string? PackagePath { get; init; }

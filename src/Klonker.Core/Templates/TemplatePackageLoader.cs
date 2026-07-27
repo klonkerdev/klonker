@@ -92,6 +92,7 @@ public static partial class TemplatePackageLoader
         var version = GetString(table, "version", issues);
         var targetOs = GetString(table, "target_os", issues);
         var buildSystem = GetString(table, "build_system", issues);
+        var language = GetOptionalNonEmptyString(table, "language", issues) ?? "unknown";
         var sourceLicense = GetString(table, "source_license", issues);
         var logo = GetOptionalNonEmptyString(table, "logo", issues);
         var tags = ParseTags(table, issues);
@@ -106,6 +107,13 @@ public static partial class TemplatePackageLoader
         }
 
         var parameters = ParseParameters(table, issues);
+
+        if (!LanguageIdPattern().IsMatch(language))
+        {
+            issues.Add(Error(
+                "manifest.language_invalid",
+                $"Language ID '{language}' must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens."));
+        }
 
         if (issues.Any(issue => issue.Severity == ValidationSeverity.Error))
         {
@@ -127,7 +135,8 @@ public static partial class TemplatePackageLoader
             logo,
             tags,
             isFavorite,
-            prerequisites);
+            prerequisites,
+            language);
     }
 
     private static ImmutableArray<string> ParseTags(
@@ -683,4 +692,7 @@ public static partial class TemplatePackageLoader
 
     [GeneratedRegex("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.CultureInvariant)]
     private static partial Regex ParameterIdPattern();
+
+    [GeneratedRegex("^[a-z][a-z0-9-]*$", RegexOptions.CultureInvariant)]
+    private static partial Regex LanguageIdPattern();
 }

@@ -60,7 +60,7 @@
                        Classes="muted"
                        FontSize="12"
                        TextWrapping="Wrap"
-                       Text="Pick a package first. Platform and build tooling come next." />
+                       Text="Pick a package first. Its focused variants come next." />
           </StackPanel>
 
           <Grid Grid.Row="1"
@@ -135,12 +135,29 @@
                           BorderThickness="1"
                           CornerRadius="9"
                           IsVisible="{Binding !SelectedPackage.HasLogo}">
-                    <PathIcon Width="27"
-                              Height="27"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Data="{StaticResource IconPackage}"
-                              Foreground="{StaticResource AccentBrush}" />
+                    <Grid>
+                      <PathIcon Width="27"
+                                Height="27"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Data="{StaticResource IconPackage}"
+                                Foreground="{StaticResource AccentBrush}"
+                                IsVisible="{Binding !SelectedPackage.HasKnownLanguageIcon}" />
+                      <PathIcon Width="30"
+                                Height="30"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Data="{StaticResource IconLua}"
+                                Foreground="{StaticResource LuaLogoBrush}"
+                                IsVisible="{Binding SelectedPackage.IsLua}" />
+                      <TextBlock HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 FontSize="15"
+                                 FontWeight="Bold"
+                                 Foreground="{StaticResource CppLogoBrush}"
+                                 IsVisible="{Binding SelectedPackage.IsCpp}"
+                                 Text="C++" />
+                    </Grid>
                   </Border>
                   <Border Background="{StaticResource InputBrush}"
                           BorderBrush="{StaticResource BorderStrongBrush}"
@@ -162,15 +179,37 @@
                              FontSize="11"
                              Text="{Binding SelectedPackage.QualifiedFamilyId}"
                              TextTrimming="CharacterEllipsis" />
-                  <Border Margin="0,6,0,0"
-                          Padding="7,3"
-                          HorizontalAlignment="Left"
-                          Background="{StaticResource InputBrush}"
-                          CornerRadius="8">
-                    <TextBlock Classes="secondary"
-                               FontSize="10"
-                               Text="{Binding SelectedPackage.VariantCountText}" />
-                  </Border>
+                  <StackPanel Margin="0,6,0,0"
+                              Orientation="Horizontal"
+                              Spacing="6">
+                    <Border Padding="7,3"
+                            Background="{StaticResource InputBrush}"
+                            CornerRadius="8">
+                      <TextBlock Classes="secondary"
+                                 FontSize="10"
+                                 Text="{Binding SelectedPackage.VariantCountText}" />
+                    </Border>
+                    <Border Padding="7,3"
+                            Background="{StaticResource InputBrush}"
+                            CornerRadius="8">
+                      <StackPanel Orientation="Horizontal"
+                                  Spacing="4">
+                        <PathIcon Width="11"
+                                  Height="11"
+                                  Data="{StaticResource IconCppLanguage}"
+                                  Foreground="{StaticResource CppLogoBrush}"
+                                  IsVisible="{Binding SelectedPackage.IsCpp}" />
+                        <PathIcon Width="11"
+                                  Height="11"
+                                  Data="{StaticResource IconLua}"
+                                  Foreground="{StaticResource LuaLogoBrush}"
+                                  IsVisible="{Binding SelectedPackage.IsLua}" />
+                        <TextBlock Classes="secondary"
+                                   FontSize="10"
+                                   Text="{Binding SelectedPackage.Language}" />
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
                 </StackPanel>
               </Grid>
 
@@ -193,7 +232,8 @@
                         Background="{StaticResource InputBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="6">
+                        CornerRadius="6"
+                        Grid.ColumnSpan="{Binding SelectedPackage.PlatformColumnSpan}">
                   <StackPanel>
                     <PathIcon Width="18"
                               Height="18"
@@ -211,7 +251,8 @@
                         Background="{StaticResource InputBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="6">
+                        CornerRadius="6"
+                        IsVisible="{Binding SelectedPackage.HasBuildSystems}">
                   <StackPanel>
                     <PathIcon Width="18"
                               Height="18"
@@ -453,12 +494,29 @@
                                   BorderThickness="1"
                                   CornerRadius="8"
                                   IsVisible="{Binding !HasLogo}">
-                            <PathIcon Width="25"
-                                      Height="25"
-                                      HorizontalAlignment="Center"
-                                      VerticalAlignment="Center"
-                                      Data="{StaticResource IconPackage}"
-                                      Foreground="{StaticResource AccentBrush}" />
+                            <Grid>
+                              <PathIcon Width="25"
+                                        Height="25"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Data="{StaticResource IconPackage}"
+                                        Foreground="{StaticResource AccentBrush}"
+                                        IsVisible="{Binding !HasKnownLanguageIcon}" />
+                              <PathIcon Width="29"
+                                        Height="29"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Data="{StaticResource IconLua}"
+                                        Foreground="{StaticResource LuaLogoBrush}"
+                                        IsVisible="{Binding IsLua}" />
+                              <TextBlock HorizontalAlignment="Center"
+                                         VerticalAlignment="Center"
+                                         FontSize="14"
+                                         FontWeight="Bold"
+                                         Foreground="{StaticResource CppLogoBrush}"
+                                         IsVisible="{Binding IsCpp}"
+                                         Text="C++" />
+                            </Grid>
                           </Border>
                           <Border BorderBrush="{StaticResource BorderStrongBrush}"
                                   BorderThickness="1"
@@ -474,12 +532,36 @@
                           <TextBlock FontSize="16"
                                      FontWeight="SemiBold"
                                      Text="{Binding Name}" />
-                          <TextBlock Margin="0,3,0,0"
-                                     Classes="muted"
-                                     FontSize="11"
-                                     Text="{Binding SourceLine}"
-                                     TextTrimming="CharacterEllipsis"
-                                     ToolTip.Tip="{Binding QualifiedFamilyId}" />
+                          <Grid Margin="0,3,0,0"
+                                ColumnDefinitions="*,Auto"
+                                ColumnSpacing="5">
+                            <TextBlock Classes="muted"
+                                       FontSize="11"
+                                       Text="{Binding SourceLine}"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip.Tip="{Binding QualifiedFamilyId}" />
+                            <Border Grid.Column="1"
+                                    Padding="5,2"
+                                    Background="{StaticResource InputBrush}"
+                                    CornerRadius="5">
+                              <StackPanel Orientation="Horizontal"
+                                          Spacing="3">
+                                <PathIcon Width="10"
+                                          Height="10"
+                                          Data="{StaticResource IconCppLanguage}"
+                                          Foreground="{StaticResource CppLogoBrush}"
+                                          IsVisible="{Binding IsCpp}" />
+                                <PathIcon Width="10"
+                                          Height="10"
+                                          Data="{StaticResource IconLua}"
+                                          Foreground="{StaticResource LuaLogoBrush}"
+                                          IsVisible="{Binding IsLua}" />
+                                <TextBlock FontSize="9"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Text="{Binding Language}" />
+                              </StackPanel>
+                            </Border>
+                          </Grid>
                         </StackPanel>
                         <Border Grid.Column="2"
                                 Padding="8,4"
@@ -504,7 +586,8 @@
                             ColumnSpacing="7">
                         <Border Padding="8,5"
                                 Background="{StaticResource InputBrush}"
-                                CornerRadius="5">
+                                CornerRadius="5"
+                                Grid.ColumnSpan="{Binding PlatformColumnSpan}">
                           <StackPanel Orientation="Horizontal"
                                       Spacing="6">
                             <PathIcon Width="14"
@@ -520,7 +603,8 @@
                         <Border Grid.Column="1"
                                 Padding="8,5"
                                 Background="{StaticResource InputBrush}"
-                                CornerRadius="5">
+                                CornerRadius="5"
+                                IsVisible="{Binding HasBuildSystems}">
                           <StackPanel Orientation="Horizontal"
                                       Spacing="6">
                             <PathIcon Width="14"
@@ -664,7 +748,8 @@
                                 Background="{StaticResource InputBrush}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="6">
+                                CornerRadius="6"
+                                Grid.ColumnSpan="{Binding PlatformColumnSpan}">
                           <Grid ColumnDefinitions="Auto,*"
                                 ColumnSpacing="8">
                             <Grid Width="27"
@@ -707,7 +792,8 @@
                                 Background="{StaticResource InputBrush}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="6">
+                                CornerRadius="6"
+                                IsVisible="{Binding HasBuildSystem}">
                           <Grid ColumnDefinitions="Auto,*"
                                 ColumnSpacing="8">
                             <Grid Width="27"

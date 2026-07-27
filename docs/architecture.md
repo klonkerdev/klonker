@@ -37,8 +37,9 @@ also provides direct file selection, previous/next navigation, and recursive
 expand/collapse commands.
 
 `SyntaxHighlightedTextView` is a read-only selectable preview. Its small
-host-owned lexer colors C++, CMake, Markdown, and common configuration syntax
-without evaluating input, loading extensions, or executing generated code.
+host-owned lexer colors C++, Lua, CMake, Markdown, and common configuration
+syntax without evaluating input, loading extensions, or executing generated
+code.
 Template logos are normalized and validated in Core, then decoded to a bounded
 card image by Desktop. Manifest tags and the default favorite state are
 presentation metadata only. Custom tags are kept separate from target,
@@ -46,6 +47,9 @@ language, variant, and build metadata; the catalog collects their union for a
 dedicated filter and assigns each tag a stable color. Host-owned vector marks
 identify the known Windows/Linux platforms and CMake/GNU Make/xmake build
 systems without loading icon code or executable assets from a registry.
+Package cards similarly render host-owned C++/Lua language marks. An explicit
+`build_system = "none"` omits build-system presentation while keeping the
+variant independently selectable and filterable.
 
 Files without the `.sbn` suffix remain byte-for-byte payloads in Core. Desktop
 may strictly decode a copied file with a known source/configuration extension
@@ -109,8 +113,8 @@ destination is rejected and existing files are never overwritten.
 - **Registry-qualified identity:** registry ID, template ID, and version.
 - **Package cache:** verified index/archive/extraction data under opaque keys.
 - **Template package:** one independently versioned family/variant directory.
-- **Manifest:** identity, presentation, target metadata, license, and declared
-  parameters.
+- **Manifest:** identity, language/presentation/target metadata, license, and
+  declared parameters.
 - **Resolved parameters:** typed primitive values after defaults and
   validation.
 - **Generation plan:** template identity, ordered directories/files, immutable

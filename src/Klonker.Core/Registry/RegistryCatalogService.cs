@@ -716,7 +716,13 @@ public sealed class RegistryCatalogService
         if (!string.Equals(manifest.Id, entry.TemplateId, StringComparison.Ordinal) ||
             !string.Equals(manifest.FamilyId, entry.FamilyId, StringComparison.Ordinal) ||
             !string.Equals(manifest.VariantId, entry.VariantId, StringComparison.Ordinal) ||
-            !string.Equals(manifest.Version, entry.Version, StringComparison.Ordinal))
+            !string.Equals(manifest.Version, entry.Version, StringComparison.Ordinal) ||
+            (manifest.Language != "unknown" &&
+             entry.Language != "unknown" &&
+             !string.Equals(
+                 manifest.Language,
+                 entry.Language,
+                 StringComparison.Ordinal)))
         {
             return Failure<RegistryTemplatePackage>(
                 "registry.package_identity_mismatch",

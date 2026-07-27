@@ -12,6 +12,7 @@ internal static class TestManifests
         version = "1.0.0"
         target_os = "windows"
         build_system = "cmake"
+        language = "cpp"
         source_license = "MIT"
 
         [[parameters]]

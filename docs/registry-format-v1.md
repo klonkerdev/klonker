@@ -22,6 +22,7 @@ template ID without being silently merged.
       "version": "0.1.0",
       "target_os": "windows",
       "build_system": "cmake",
+      "language": "cpp",
       "package_path": "packages/std.cpp-cli.windows-cmake-0.1.0.zip",
       "license_summary": "Generated source: MIT",
       "package_sha256": "64-lowercase-hex-characters",
@@ -31,10 +32,12 @@ template ID without being silently merged.
 }
 ```
 
-Every property shown is required. `package_path` is a safe relative path. A
-remote index resolves it relative to the index URL and requires the resulting
-URL to use HTTPS. A local index resolves it beneath the directory containing
-`registry.json`.
+Every property shown except `language` is required. `language` is emitted by
+the current publisher and is a lowercase identifier; indexes created before
+this field was introduced load as `unknown`. `package_path` is a safe relative
+path. A remote index resolves it relative to the index URL and requires the
+resulting URL to use HTTPS. A local index resolves it beneath the directory
+containing `registry.json`.
 
 Remote package artifacts are ZIP files whose root contains `template.toml`,
 optional presentation assets, and `content/`. `package_sha256` and

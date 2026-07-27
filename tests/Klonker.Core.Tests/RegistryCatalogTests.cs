@@ -20,6 +20,24 @@ public sealed class RegistryCatalogTests
         var entry = Assert.Single(result.Value!.Templates);
         Assert.Equal(new string('a', 64), entry.PackageSha256);
         Assert.Equal(42, entry.PackageSizeBytes);
+        Assert.Equal("cpp", entry.Language);
+    }
+
+    [Fact]
+    public void Index_LegacyEntryWithoutLanguage_RemainsCompatible()
+    {
+        var json = CreateIndexJson(new string('a', 64), packageSize: 42)
+            .Replace(
+                """
+                      "language": "cpp",
+                """,
+                string.Empty,
+                StringComparison.Ordinal);
+
+        var result = RegistryIndexLoader.Parse(json, "legacy test registry");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("unknown", Assert.Single(result.Value!.Templates).Language);
     }
 
     [Fact]
@@ -257,6 +275,7 @@ public sealed class RegistryCatalogTests
               "version": "1.0.0",
               "target_os": "windows",
               "build_system": "cmake",
+              "language": "cpp",
               "package_path": "packages/test.console.windows-1.0.0.zip",
               "license_summary": "Generated source: MIT",
               "package_sha256": "{{checksum}}",
