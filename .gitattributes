@@ -1,0 +1,14 @@
+# Registry checksums cover exact package bytes, so text checkouts must be
+# identical on Windows, Linux, and macOS.
+* text=auto eol=lf
+
+*.aei binary
+*.dll binary
+*.exe binary
+*.gif binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.pdb binary
+*.png binary
+*.zip binary

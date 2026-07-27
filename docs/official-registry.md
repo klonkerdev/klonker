@@ -13,14 +13,14 @@ https://raw.githubusercontent.com/klonkerdev/registry/main/dist/registry.json
 
 The endpoint is live and serves the most recently pushed `dist/`. The prepared
 registry checkout has been loaded directly through Klonker's Core catalog
-service as a local registry: all 11 packages passed checksum/extraction, five
+service as a local registry: all 12 packages passed checksum/extraction, six
 `gof2.modapi` variants were discovered as Lua/no-build templates, and the
-ImGui variant produced a valid generation plan.
+all-in-one variant produced a valid generation plan and output tree.
 
 The prepared catalog contains six independently versioned `std.cpp-cli`
-variants (CMake, GNU Make, and xmake for Windows and Linux) plus five
+variants (CMake, GNU Make, and xmake for Windows and Linux) plus six
 `gof2.modapi` Lua variants (event starter, ImGui menu, render hook, campaign
-mission, and custom content). The application repository's checked-in
+mission, custom content, and an all-in-one showcase). The application repository's checked-in
 development sample remains the Windows CMake variant only. The new GOF2
 entries become available from the public endpoint after the regenerated
 registry `dist/` is pushed.
@@ -52,6 +52,7 @@ templates/
         render-hook/
         campaign-mission/
         custom-content/
+        all-in-one/
 dist/
   registry.json
   packages/
@@ -136,8 +137,8 @@ Publication status:
 
 - [x] push the prepared repository to `klonkerdev/registry`;
 - [x] test a clean online download and a fully offline cached load;
-- [x] test the expanded 11-entry distribution as a local Klonker registry;
-- [ ] push the GOF2 source and regenerated 11-entry `dist/`;
+- [x] test the expanded 12-entry distribution as a local Klonker registry;
+- [ ] push the GOF2 source and regenerated 12-entry `dist/`;
 - [ ] protect `main` and require the validation workflow and review;
 - [ ] retain a documented license-review gate for every generated source
   package;

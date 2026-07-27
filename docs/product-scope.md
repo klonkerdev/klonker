@@ -24,8 +24,8 @@ Version one is project generation only:
 The first implemented family is a C++ command-line application. Its official
 registry provides CMake, GNU Make, and xmake variants targeting Windows and
 Linux. The prepared registry source also provides a `gof2.modapi` Lua family
-with event, ImGui menu, rendering hook, campaign mission, and custom-content
-starters. These variants have no build system and generate the direct folder
+with event, ImGui menu, rendering hook, campaign mission, custom-content, and
+all-in-one starters. These variants have no build system and generate the direct folder
 layout consumed by the external Windows game ModAPI. A Linux-targeted template
 still generates into the selected Windows destination; generation inside WSL
 remains planned. Other useful families may include a small C# console app and

@@ -140,8 +140,9 @@ and positional arguments. The checked-in sample is test and development data;
 the production catalog is maintained separately in the
 [`klonkerdev/registry`](https://github.com/klonkerdev/registry) repository and
 currently publishes Windows/Linux variants for CMake, GNU Make, and xmake.
-The prepared registry source also contains five `gof2.modapi` Lua starters for
-events, ImGui menus, rendering hooks, campaign missions, and custom content;
+The prepared registry source also contains six `gof2.modapi` Lua starters for
+events, ImGui menus, rendering hooks, campaign missions, custom content, and a
+modular all-in-one showcase;
 they use `build_system = "none"` and are published when the registry
 repository's updated `dist/` is pushed. New Klonker configurations use the
 published raw GitHub index directly.

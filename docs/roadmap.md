@@ -53,7 +53,8 @@
 - [x] prepare the standalone `klonkerdev/registry` source, CI, and distribution
 - [x] discover hierarchical namespace/package/variant registry sources
 - [x] publish language metadata in runtime manifests and registry indexes
-- [x] prepare five `gof2.modapi` Lua variants from the upstream ModAPI examples
+- [x] prepare six `gof2.modapi` Lua variants, including a modular all-in-one
+  showcase, from the upstream ModAPI examples
 - [x] add a validated self-contained Windows x64 nightly release workflow
 
 ## Next milestones
