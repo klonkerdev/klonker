@@ -89,6 +89,64 @@ public partial class CatalogView : UserControl
         }
     }
 
+    private void OnModulePointerPressed(
+        object? sender,
+        PointerPressedEventArgs eventArgs)
+    {
+        if (ShouldIgnorePointer(eventArgs) || eventArgs.ClickCount < 2)
+        {
+            return;
+        }
+
+        if (sender is not ListBox { SelectedItem: ModuleListItemViewModel module } ||
+            DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        if (viewModel.OpenModuleConfigurationCommand.CanExecute(module))
+        {
+            viewModel.OpenModuleConfigurationCommand.Execute(module);
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void OnConfigureModuleClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { Tag: ModuleListItemViewModel module } &&
+            DataContext is MainViewModel viewModel)
+        {
+            viewModel.OpenModuleConfigurationCommand.Execute(module);
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void OnFavoriteModuleClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { Tag: ModuleListItemViewModel module } &&
+            DataContext is MainViewModel viewModel)
+        {
+            viewModel.ToggleFavorite(module);
+            eventArgs.Handled = true;
+        }
+    }
+
+    private void OnCustomCatalogTabClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { Tag: CatalogTabViewModel tab } &&
+            DataContext is MainViewModel viewModel)
+        {
+            viewModel.SelectCustomCatalogTab(tab);
+            eventArgs.Handled = true;
+        }
+    }
+
     private static bool ShouldIgnorePointer(PointerPressedEventArgs eventArgs) =>
         eventArgs.Source is Visual source &&
         (source.FindAncestorOfType<Button>() is not null ||

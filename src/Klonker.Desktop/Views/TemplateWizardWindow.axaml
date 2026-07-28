@@ -1,0 +1,860 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Klonker.Desktop.ViewModels"
+        xmlns:services="using:Klonker.Desktop.Services"
+        xmlns:controls="using:Klonker.Desktop.Controls"
+        x:Class="Klonker.Desktop.Views.TemplateWizardWindow"
+        x:DataType="vm:TemplateWizardViewModel"
+        Width="1180"
+        Height="760"
+        MinWidth="980"
+        MinHeight="680"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Title="Klonker template wizard">
+
+  <Window.Styles>
+    <Style Selector="Border.wizardChoice">
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="Border.wizardChoice:pointerover">
+      <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="ListBox.choiceCards ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,9,9" />
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="ListBox.choiceCards ListBoxItem:selected">
+      <Setter Property="Background" Value="{StaticResource SelectionBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="ListBox.choiceCards ListBoxItem:pointerover">
+      <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+    </Style>
+    <Style Selector="ListBox.choiceCards Border.choiceCard">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.choiceCard">
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+    <Style Selector="Border.choiceCard.selected">
+      <Setter Property="Background" Value="{StaticResource SelectionBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.stepCard">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+    <Style Selector="Border.stepCard.current">
+      <Setter Property="Background" Value="{StaticResource SelectionBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.stepNumber">
+      <Setter Property="Background" Value="{StaticResource InputBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.stepNumber.complete">
+      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.issue.error">
+      <Setter Property="Background" Value="{StaticResource ErrorSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource ErrorBrush}" />
+    </Style>
+    <Style Selector="Border.issue.warning">
+      <Setter Property="Background" Value="{StaticResource WarningSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="64,*"
+        Background="{StaticResource BackgroundBrush}">
+    <Border Padding="20,0"
+            Background="{StaticResource ChromeBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="13">
+        <Border Width="38"
+                Height="38"
+                VerticalAlignment="Center"
+                Background="{StaticResource AccentMutedBrush}"
+                CornerRadius="8">
+          <PathIcon Width="20"
+                    Height="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Data="{StaticResource IconPackage}"
+                    Foreground="{StaticResource AccentBrush}" />
+        </Border>
+        <StackPanel Grid.Column="1"
+                    VerticalAlignment="Center">
+          <TextBlock FontSize="17"
+                     FontWeight="SemiBold"
+                     Text="Template wizard" />
+          <TextBlock Classes="muted"
+                     FontSize="11"
+                     Text="Create a publishable source package without touching generated projects." />
+        </StackPanel>
+        <Button Grid.Column="2"
+                AutomationProperties.Name="Close template wizard"
+                Classes="icon"
+                Click="OnCloseClicked">
+          <PathIcon Width="14"
+                    Height="14"
+                    Data="{StaticResource IconClose}" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,280">
+      <Grid Margin="20"
+            RowDefinitions="Auto,*,Auto"
+            RowSpacing="14">
+        <StackPanel>
+          <TextBlock Classes="eyebrow"
+                     Text="{Binding CurrentStepTitle}" />
+          <TextBlock Margin="0,4,0,0"
+                     Classes="title"
+                     FontSize="22"
+                     Text="{Binding CurrentStepTitle}" />
+          <TextBlock Margin="0,5,0,0"
+                     Classes="secondary"
+                     Text="{Binding CurrentStepDescription}" />
+        </StackPanel>
+
+        <TransitioningContentControl Grid.Row="1"
+                                     Content="{Binding CurrentPage}"
+                                     IsTransitionReversed="{Binding IsTransitionReversed}">
+          <TransitioningContentControl.PageTransition>
+            <CompositePageTransition>
+              <PageSlide Duration="0:0:0.18"
+                         Orientation="Horizontal" />
+              <CrossFade Duration="0:0:0.18" />
+            </CompositePageTransition>
+          </TransitioningContentControl.PageTransition>
+          <TransitioningContentControl.ContentTemplate>
+            <DataTemplate x:DataType="vm:TemplateWizardPageViewModel">
+              <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto">
+                <Grid Margin="0,2,8,4">
+                  <StackPanel IsVisible="{Binding IsWelcome}"
+                              Spacing="14">
+                    <TextBlock FontSize="15"
+                               FontWeight="SemiBold"
+                               Text="How do you want to begin?" />
+                    <Grid ColumnDefinitions="*,*,*"
+                          ColumnSpacing="14">
+                      <Border Classes="wizardChoice"
+                              Padding="18">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto"
+                              RowSpacing="12">
+                          <Border Width="46"
+                                  Height="46"
+                                  HorizontalAlignment="Left"
+                                  Background="{StaticResource AccentMutedBrush}"
+                                  CornerRadius="10">
+                            <PathIcon Width="24"
+                                      Height="24"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="{StaticResource IconGenerate}"
+                                      Foreground="{StaticResource AccentBrush}" />
+                          </Border>
+                          <TextBlock Grid.Row="1"
+                                     FontSize="17"
+                                     FontWeight="SemiBold"
+                                     Text="New template" />
+                          <TextBlock Grid.Row="2"
+                                     Classes="secondary"
+                                     TextWrapping="Wrap"
+                                     Text="Start from guided language and build-system cards. Klonker creates package metadata, variants, starter content, and an optional README." />
+                          <Button Grid.Row="3"
+                                  Classes="primary"
+                                  HorizontalAlignment="Stretch"
+                                  Command="{Binding Wizard.ChooseNewTemplateCommand}"
+                                  Content="Create a new template" />
+                        </Grid>
+                      </Border>
+                      <Border Grid.Column="1"
+                              Classes="wizardChoice"
+                              Padding="18">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto"
+                              RowSpacing="12">
+                          <Border Width="46"
+                                  Height="46"
+                                  HorizontalAlignment="Left"
+                                  Background="{StaticResource SurfaceHoverBrush}"
+                                  CornerRadius="10">
+                            <PathIcon Width="24"
+                                      Height="24"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="{StaticResource IconFolder}"
+                                      Foreground="{StaticResource FolderIconBrush}" />
+                          </Border>
+                          <TextBlock Grid.Row="1"
+                                     FontSize="17"
+                                     FontWeight="SemiBold"
+                                     Text="Existing folder" />
+                          <TextBlock Grid.Row="2"
+                                     Classes="secondary"
+                                     TextWrapping="Wrap"
+                                     Text="Inspect an existing runtime package, registry source package, or ordinary code folder. Fix actionable findings or create a safe detached package copy." />
+                          <Button Grid.Row="3"
+                                  Classes="ghost"
+                                  HorizontalAlignment="Stretch"
+                                  Command="{Binding Wizard.ChooseExistingFolderCommand}"
+                                  Content="Inspect an existing folder" />
+                        </Grid>
+                      </Border>
+                      <Border Grid.Column="2"
+                              Classes="wizardChoice"
+                              Padding="18">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto"
+                              RowSpacing="12">
+                          <Border Width="46"
+                                  Height="46"
+                                  HorizontalAlignment="Left"
+                                  Background="{StaticResource AccentMutedBrush}"
+                                  CornerRadius="10">
+                            <PathIcon Width="24"
+                                      Height="24"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="{StaticResource IconPackage}"
+                                      Foreground="{StaticResource AccentBrush}" />
+                          </Border>
+                          <TextBlock Grid.Row="1"
+                                     FontSize="17"
+                                     FontWeight="SemiBold"
+                                     Text="Catalog template" />
+                          <TextBlock Grid.Row="2"
+                                     Classes="secondary"
+                                     TextWrapping="Wrap"
+                                     Text="Copy a loaded catalog template, including its content, parameters, prerequisites, and tags, then customize it as a detached source package." />
+                          <Button Grid.Row="3"
+                                  Classes="ghost"
+                                  HorizontalAlignment="Stretch"
+                                  Command="{Binding Wizard.ChooseCatalogTemplateCommand}"
+                                  Content="Use a catalog template" />
+                        </Grid>
+                      </Border>
+                    </Grid>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsCatalogTemplate}"
+                              Spacing="13">
+                    <Border Classes="panel"
+                            Padding="14"
+                            IsVisible="{Binding !Wizard.HasCatalogTemplates}">
+                      <TextBlock Classes="secondary"
+                                 TextWrapping="Wrap"
+                                 Text="No catalog templates are loaded. Close this wizard, refresh the catalog, then reopen it." />
+                    </Border>
+                    <ListBox Classes="choiceCards"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ItemsSource="{Binding Wizard.CatalogTemplates}"
+                             SelectedItem="{Binding Wizard.SelectedCatalogTemplate, Mode=TwoWay}">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TemplateCatalogAuthoringChoiceViewModel">
+                          <Border MinHeight="86"
+                                  Classes="choiceCard"
+                                  Padding="13">
+                            <Grid ColumnDefinitions="*,Auto"
+                                  ColumnSpacing="14">
+                              <StackPanel>
+                                <TextBlock FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding Name}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Classes="secondary"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Description}" />
+                                <TextBlock Margin="0,5,0,0"
+                                           Classes="muted"
+                                           FontFamily="Cascadia Mono,Consolas"
+                                           FontSize="10"
+                                           Text="{Binding QualifiedId}" />
+                              </StackPanel>
+                              <TextBlock Grid.Column="1"
+                                         Classes="muted"
+                                         VerticalAlignment="Top"
+                                         Text="{Binding Technology}" />
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsExistingFolder}"
+                              Spacing="13">
+                    <Border Classes="panel"
+                            Padding="16">
+                      <StackPanel Spacing="10">
+                        <TextBlock FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Text="Source folder" />
+                        <TextBlock Classes="secondary"
+                                   TextWrapping="Wrap"
+                                   Text="The inspector reads manifests and files only. It never moves, edits, builds, or executes anything in this folder." />
+                        <Grid ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8">
+                          <TextBox Classes="field"
+                                   Text="{Binding Wizard.ExistingFolderPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                   PlaceholderText="D:\projects\my-project" />
+                          <Button Grid.Column="1"
+                                  Classes="ghost"
+                                  Command="{Binding Wizard.BrowseExistingFolderCommand}"
+                                  Content="Browse…" />
+                        </Grid>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsInspection}"
+                              Spacing="12">
+                    <Border Classes="panel"
+                            Padding="15">
+                      <Grid ColumnDefinitions="*,Auto"
+                            ColumnSpacing="12">
+                        <StackPanel>
+                          <TextBlock FontSize="15"
+                                     FontWeight="SemiBold"
+                                     Text="{Binding Wizard.InspectionStatus}" />
+                          <TextBlock Margin="0,4,0,0"
+                                     Classes="secondary"
+                                     TextWrapping="Wrap"
+                                     Text="{Binding Wizard.InspectionSummary}" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Classes="ghost"
+                                VerticalAlignment="Top"
+                                Command="{Binding Wizard.RefreshInspectionCommand}"
+                                Content="Refresh" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="successSurface"
+                            Padding="13"
+                            IsVisible="{Binding Wizard.IsAlreadyRegistrySource}">
+                      <StackPanel Orientation="Horizontal"
+                                  Spacing="9">
+                        <PathIcon Width="18"
+                                  Height="18"
+                                  Data="{StaticResource IconCheck}"
+                                  Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="This folder already uses registry source layout. No conversion is necessary; address any warnings, then publish it through the registry workflow." />
+                      </StackPanel>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding Wizard.InspectionIssues}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TemplateInspectionIssueViewModel">
+                          <Border Classes="issue"
+                                  Classes.error="{Binding IsError}"
+                                  Classes.warning="{Binding IsWarning}"
+                                  Margin="0,0,0,7"
+                                  Padding="10"
+                                  BorderThickness="1"
+                                  CornerRadius="6">
+                            <StackPanel>
+                              <TextBlock FontSize="10"
+                                         FontWeight="SemiBold"
+                                         Text="{Binding Severity}" />
+                              <TextBlock Margin="0,3,0,0"
+                                         TextWrapping="Wrap"
+                                         Text="{Binding Message}" />
+                              <TextBlock Margin="0,3,0,0"
+                                         Classes="muted"
+                                         FontFamily="Cascadia Mono,Consolas"
+                                         FontSize="10"
+                                         IsVisible="{Binding HasPath}"
+                                         Text="{Binding Path}" />
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Expander Header="Inspected files"
+                              IsVisible="{Binding Wizard.HasInspectionFiles}">
+                      <TextBox Margin="0,7,0,0"
+                               Classes="code"
+                               AcceptsReturn="True"
+                               IsReadOnly="True"
+                               MaxHeight="180"
+                               ScrollViewer.VerticalScrollBarVisibility="Auto"
+                               Text="{Binding Wizard.InspectionFilesSummary}" />
+                    </Expander>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsDestination}"
+                              Spacing="13">
+                    <Border Classes="panel"
+                            Padding="16">
+                      <StackPanel Spacing="10">
+                        <TextBlock FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Text="Authoring package destination" />
+                        <TextBlock Classes="secondary"
+                                   TextWrapping="Wrap"
+                                   Text="Choose a new or empty folder. Generation uses a sibling staging directory and installs the complete package atomically." />
+                        <Grid ColumnDefinitions="*,Auto"
+                              ColumnSpacing="8">
+                          <TextBox Classes="field"
+                                   Text="{Binding Wizard.DestinationPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                   PlaceholderText="D:\templates\my-template" />
+                          <Button Grid.Column="1"
+                                  Classes="ghost"
+                                  Command="{Binding Wizard.BrowseDestinationCommand}"
+                                  Content="Browse…" />
+                        </Grid>
+                        <Border Classes="successSurface"
+                                Padding="9"
+                                IsVisible="{Binding Wizard.DestinationHasSuccess}">
+                          <StackPanel Orientation="Horizontal"
+                                      Spacing="7">
+                            <PathIcon Width="15"
+                                      Height="15"
+                                      Data="{StaticResource IconCheck}"
+                                      Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding Wizard.DestinationValidationMessage}" />
+                          </StackPanel>
+                        </Border>
+                        <Border Padding="9"
+                                Background="{StaticResource ErrorSurfaceBrush}"
+                                BorderBrush="{StaticResource ErrorBrush}"
+                                BorderThickness="1"
+                                CornerRadius="7"
+                                IsVisible="{Binding Wizard.DestinationHasError}">
+                          <StackPanel Orientation="Horizontal"
+                                      Spacing="7">
+                            <PathIcon Width="15"
+                                      Height="15"
+                                      Data="{StaticResource IconError}"
+                                      Foreground="{StaticResource ErrorBrush}" />
+                            <TextBlock FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding Wizard.DestinationValidationMessage}" />
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsBasics}"
+                              Spacing="14">
+                    <TextBlock FontSize="15"
+                               FontWeight="SemiBold"
+                               Text="Generated source license" />
+                    <ListBox Classes="choiceCards"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ItemsSource="{Binding Wizard.Licenses}"
+                             SelectedItem="{Binding Wizard.SelectedLicense, Mode=TwoWay}">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="services:TemplateLicenseOption">
+                          <Border Width="190"
+                                  MinHeight="76"
+                                  Classes="choiceCard"
+                                  Padding="11">
+                            <StackPanel>
+                              <TextBlock FontWeight="SemiBold"
+                                         Text="{Binding Name}" />
+                              <TextBlock Margin="0,4,0,0"
+                                         Classes="muted"
+                                         FontSize="10"
+                                         Text="{Binding SourceLicense}" />
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Border Classes="panel"
+                            Padding="14">
+                      <CheckBox IsChecked="{Binding Wizard.CreateReadme, Mode=TwoWay}"
+                                Content="Create content/README.md.sbn with project requirements and license" />
+                    </Border>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsTechnology}"
+                              Spacing="13">
+                    <TextBlock FontSize="15"
+                               FontWeight="SemiBold"
+                               Text="Language" />
+                    <ListBox Classes="choiceCards"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ItemsSource="{Binding Wizard.Languages}"
+                             SelectedItem="{Binding Wizard.SelectedLanguage, Mode=TwoWay}">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="services:TemplateLanguageOption">
+                          <Border Width="190"
+                                  MinHeight="92"
+                                  Classes="choiceCard"
+                                  Padding="11">
+                            <StackPanel>
+                              <TextBlock FontSize="14"
+                                         FontWeight="SemiBold"
+                                         Text="{Binding Name}" />
+                              <TextBlock Margin="0,5,0,0"
+                                         Classes="secondary"
+                                         FontSize="10"
+                                         TextWrapping="Wrap"
+                                         Text="{Binding Description}" />
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Text="Build systems" />
+                    <TextBlock Classes="muted"
+                               FontSize="10"
+                               Text="Select one or more. Klonker creates a separate variant for every selected platform and build system." />
+                    <ItemsControl ItemsSource="{Binding Wizard.AvailableBuildSystems}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TemplateBuildSystemChoiceViewModel">
+                          <Border Width="200"
+                                  MinHeight="82"
+                                  Margin="0,0,9,9"
+                                  Classes="choiceCard"
+                                  Classes.selected="{Binding IsSelected}"
+                                  Padding="11">
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                              <StackPanel Margin="4,0,0,0">
+                                <TextBlock FontWeight="SemiBold"
+                                           Text="{Binding Name}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Classes="secondary"
+                                           FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Description}" />
+                              </StackPanel>
+                            </CheckBox>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Text="Target platforms" />
+                    <ItemsControl ItemsSource="{Binding Wizard.Platforms}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TemplatePlatformChoiceViewModel">
+                          <Border Width="210"
+                                  MinHeight="88"
+                                  Margin="0,0,9,9"
+                                  Classes="choiceCard"
+                                  Classes.selected="{Binding IsSelected}"
+                                  Padding="11">
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                              <StackPanel Margin="4,0,0,0">
+                                <TextBlock FontWeight="SemiBold"
+                                           Text="{Binding Name}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Classes="secondary"
+                                           FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Description}" />
+                              </StackPanel>
+                            </CheckBox>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+
+                  <StackPanel IsVisible="{Binding IsMetadata}"
+                              Spacing="11">
+                    <Grid ColumnDefinitions="*,*"
+                          ColumnSpacing="10"
+                          RowDefinitions="Auto,Auto,Auto">
+                      <StackPanel>
+                        <TextBlock Classes="eyebrow"
+                                   Text="NAMESPACE ID" />
+                        <TextBox Margin="0,5,0,0"
+                                 Classes="field"
+                                 Text="{Binding Wizard.NamespaceId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1">
+                        <TextBlock Classes="eyebrow"
+                                   Text="PACKAGE ID" />
+                        <TextBox Margin="0,5,0,0"
+                                 Classes="field"
+                                 Text="{Binding Wizard.PackageId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      </StackPanel>
+                      <StackPanel Grid.Row="1"
+                                  Margin="0,11,0,0">
+                        <TextBlock Classes="eyebrow"
+                                   Text="DISPLAY NAME" />
+                        <TextBox Margin="0,5,0,0"
+                                 Classes="field"
+                                 Text="{Binding Wizard.PackageName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      </StackPanel>
+                      <StackPanel Grid.Row="1"
+                                  Grid.Column="1"
+                                  Margin="0,11,0,0">
+                        <TextBlock Classes="eyebrow"
+                                   Text="INITIAL VERSION" />
+                        <TextBox Margin="0,5,0,0"
+                                 Classes="field"
+                                 Text="{Binding Wizard.Version, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      </StackPanel>
+                      <StackPanel Grid.Row="2"
+                                  Grid.ColumnSpan="2"
+                                  Margin="0,11,0,0">
+                        <TextBlock Classes="eyebrow"
+                                   Text="DESCRIPTION" />
+                        <TextBox Margin="0,5,0,0"
+                                 MinHeight="90"
+                                 AcceptsReturn="True"
+                                 Classes="field"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Wizard.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      </StackPanel>
+                    </Grid>
+                    <Border Classes="inset"
+                            Padding="11">
+                      <TextBlock Classes="muted"
+                                 FontSize="11"
+                                 TextWrapping="Wrap"
+                                 Text="IDs use lowercase letters, numbers, and hyphens. The wizard creates one independently versioned variant per selected platform." />
+                    </Border>
+                    <ItemsControl IsVisible="{Binding Wizard.HasIssues}"
+                                  ItemsSource="{Binding Wizard.InspectionIssues}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:TemplateInspectionIssueViewModel">
+                          <Border Classes="issue"
+                                  Classes.error="{Binding IsError}"
+                                  Classes.warning="{Binding IsWarning}"
+                                  Margin="0,0,0,7"
+                                  Padding="9"
+                                  BorderThickness="1"
+                                  CornerRadius="6">
+                            <TextBlock TextWrapping="Wrap"
+                                       Text="{Binding Message}" />
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+
+                  <Grid IsVisible="{Binding IsPreview}"
+                        RowDefinitions="Auto,*,Auto"
+                        RowSpacing="10">
+                    <Border Classes="inset"
+                            Padding="10">
+                      <TextBlock Classes="secondary"
+                                 FontSize="11"
+                                 Text="{Binding Wizard.StatusMessage}" />
+                    </Border>
+                    <Grid Grid.Row="1"
+                          ColumnDefinitions="270,*"
+                          ColumnSpacing="9"
+                          MinHeight="360">
+                      <Border Classes="panel"
+                              Padding="8">
+                        <ListBox Background="Transparent"
+                                 BorderThickness="0"
+                                 ItemsSource="{Binding Wizard.Preview.Files}"
+                                 SelectedItem="{Binding Wizard.Preview.SelectedFile, Mode=TwoWay}">
+                          <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PreviewFileViewModel">
+                              <TextBlock Margin="4,5"
+                                         FontFamily="Cascadia Mono,Consolas"
+                                         FontSize="10"
+                                         Text="{Binding Path}"
+                                         TextTrimming="CharacterEllipsis"
+                                         ToolTip.Tip="{Binding Path}" />
+                            </DataTemplate>
+                          </ListBox.ItemTemplate>
+                        </ListBox>
+                      </Border>
+                      <Border Grid.Column="1"
+                              Classes="panel"
+                              Padding="10">
+                        <TextBox Classes="code"
+                                 AcceptsReturn="True"
+                                 IsReadOnly="True"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 Text="{Binding Wizard.Preview.SelectedContent}"
+                                 TextWrapping="NoWrap" />
+                      </Border>
+                    </Grid>
+                    <Border Grid.Row="2"
+                            Classes="successSurface"
+                            Padding="11"
+                            IsVisible="{Binding Wizard.GenerationSucceeded}">
+                      <StackPanel Orientation="Horizontal"
+                                  Spacing="8">
+                        <PathIcon Width="17"
+                                  Height="17"
+                                  Data="{StaticResource IconCheck}"
+                                  Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="{Binding Wizard.GenerationMessage}" />
+                      </StackPanel>
+                    </Border>
+                    <Border Grid.Row="2"
+                            Padding="11"
+                            Background="{StaticResource ErrorSurfaceBrush}"
+                            BorderBrush="{StaticResource ErrorBrush}"
+                            BorderThickness="1"
+                            CornerRadius="7"
+                            IsVisible="{Binding Wizard.HasGenerationError}">
+                      <StackPanel Orientation="Horizontal"
+                                  Spacing="8">
+                        <PathIcon Width="17"
+                                  Height="17"
+                                  Data="{StaticResource IconError}"
+                                  Foreground="{StaticResource ErrorBrush}" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="{Binding Wizard.GenerationMessage}" />
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+                </Grid>
+              </ScrollViewer>
+            </DataTemplate>
+          </TransitioningContentControl.ContentTemplate>
+        </TransitioningContentControl>
+
+        <Grid Grid.Row="2"
+              ColumnDefinitions="*,Auto,Auto"
+              ColumnSpacing="8">
+          <TextBlock VerticalAlignment="Center"
+                     Classes="muted"
+                     FontSize="11"
+                     Text="{Binding StatusMessage}"
+                     TextTrimming="CharacterEllipsis" />
+          <Button Grid.Column="1"
+                  Classes="ghost"
+                  Command="{Binding BackCommand}"
+                  Content="Back"
+                  IsVisible="{Binding CanGoBack}" />
+          <Button Grid.Column="2"
+                  Classes="primary"
+                  Command="{Binding NextCommand}"
+                  Content="Continue"
+                  IsVisible="{Binding !IsPreviewStep}" />
+          <Button Grid.Column="2"
+                  Classes="primary"
+                  Command="{Binding GenerateCommand}"
+                  Content="Generate package"
+                  IsVisible="{Binding IsPreviewStep}" />
+        </Grid>
+      </Grid>
+
+      <Border Grid.Column="1"
+              Padding="16"
+              Background="{StaticResource SurfaceBrush}"
+              BorderBrush="{StaticResource BorderBrush}"
+              BorderThickness="1,0,0,0">
+        <Grid RowDefinitions="Auto,*"
+              RowSpacing="14">
+          <StackPanel>
+            <TextBlock Classes="eyebrow"
+                       Text="YOUR PROGRESS" />
+            <TextBlock Margin="0,4,0,0"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       Text="Authoring steps" />
+          </StackPanel>
+          <ItemsControl Grid.Row="1"
+                        ItemsSource="{Binding Steps}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TemplateWizardStepViewModel">
+                <Border Classes="stepCard"
+                        Classes.current="{Binding IsCurrent}"
+                        Margin="0,0,0,7"
+                        Padding="9">
+                  <Grid ColumnDefinitions="32,*"
+                        ColumnSpacing="9">
+                    <Border Width="28"
+                            Height="28"
+                            Classes="stepNumber"
+                            Classes.complete="{Binding IsComplete}"
+                            CornerRadius="14">
+                      <Grid>
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   IsVisible="{Binding !IsComplete}"
+                                   Text="{Binding Number}" />
+                        <PathIcon Width="14"
+                                  Height="14"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Data="{StaticResource IconCheck}"
+                                  Foreground="#08110A"
+                                  IsVisible="{Binding IsComplete}" />
+                      </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1">
+                      <TextBlock FontSize="12"
+                                 FontWeight="SemiBold"
+                                 Text="{Binding Title}" />
+                      <TextBlock Margin="0,2,0,0"
+                                 Classes="muted"
+                                 FontSize="9"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Description}" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

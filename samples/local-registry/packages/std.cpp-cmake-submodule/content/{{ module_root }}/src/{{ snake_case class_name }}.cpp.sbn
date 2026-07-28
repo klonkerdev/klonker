@@ -1,0 +1,9 @@
+#include "{{ snake_case class_name }}.hpp"
+
+namespace {{ snake_case library_name }}
+{
+const char* {{ class_name }}::name() const noexcept
+{
+    return "{{ class_name }}";
+}
+}

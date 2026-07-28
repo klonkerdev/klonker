@@ -37,9 +37,18 @@ function Assert-LocalRegistryIntegrity {
         throw "Sample registry '$RegistryPath' must use schema version 1."
     }
 
-    $entries = @($registry.templates)
+    $templateEntries = @($registry.templates)
+    $moduleEntries = if (
+        $null -ne $registry.PSObject.Properties['modules']
+    ) {
+        @($registry.modules)
+    }
+    else {
+        @()
+    }
+    $entries = @($templateEntries) + @($moduleEntries)
     if ($entries.Count -eq 0) {
-        throw "Sample registry '$RegistryPath' contains no templates."
+        throw "Sample registry '$RegistryPath' contains no templates or modules."
     }
 
     $identities = [System.Collections.Generic.HashSet[string]]::new(
@@ -47,9 +56,20 @@ function Assert-LocalRegistryIntegrity {
     $resolvedPackages = [System.Collections.Generic.HashSet[string]]::new(
         [System.StringComparer]::OrdinalIgnoreCase)
     foreach ($entry in $entries) {
-        $identity = "$($entry.template_id)@$($entry.version)"
+        $artifactId = if (
+            $null -ne $entry.PSObject.Properties['template_id']
+        ) {
+            [string] $entry.template_id
+        }
+        elseif ($null -ne $entry.PSObject.Properties['module_id']) {
+            [string] $entry.module_id
+        }
+        else {
+            ''
+        }
+        $identity = "$artifactId@$($entry.version)"
         if (
-            [string]::IsNullOrWhiteSpace([string] $entry.template_id) -or
+            [string]::IsNullOrWhiteSpace($artifactId) -or
             -not $identities.Add($identity)
         ) {
             throw "Sample registry '$RegistryPath' contains invalid or duplicate identity '$identity'."
@@ -123,6 +143,23 @@ function Assert-LocalRegistryIntegrity {
                 -Quiet
         ) {
             throw "Template manifest '$($manifest.FullName)' contains app-local favorite state."
+        }
+    }
+
+    $moduleManifests = @(
+        Get-ChildItem -LiteralPath $registryRoot -Filter 'module.toml' -File -Recurse)
+    foreach ($manifest in $moduleManifests) {
+        if (-not $resolvedPackages.Contains($manifest.DirectoryName)) {
+            throw "Sample module '$($manifest.DirectoryName)' is not referenced by '$RegistryPath'."
+        }
+
+        if (
+            Select-String `
+                -LiteralPath $manifest.FullName `
+                -Pattern '(?m)^\s*favorite\s*=' `
+                -Quiet
+        ) {
+            throw "Module manifest '$($manifest.FullName)' contains app-local favorite state."
         }
     }
 }

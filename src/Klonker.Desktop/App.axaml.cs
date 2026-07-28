@@ -26,8 +26,11 @@ public partial class App : Application, IDisposable
                 registryConfigurationStore.ApplicationDataRoot);
             var favoriteStore = new FavoriteStore(
                 registryConfigurationStore.ApplicationDataRoot);
+            var catalogTabStore = new CatalogTabStore(
+                registryConfigurationStore.ApplicationDataRoot);
             var diagnosticLog = new AppDiagnosticLog(appSettingsStore);
-            var appearanceService = new AppearanceService();
+            var tagPalette = new TemplateTagPalette();
+            var appearanceService = new AppearanceService(tagPalette);
             var appSettings = appSettingsStore.Load();
             var timeoutSeconds = appSettings.IsSuccess
                 ? appSettings.Value!.RegistryDownloadTimeoutSeconds
@@ -43,7 +46,8 @@ public partial class App : Application, IDisposable
             };
             var catalog = new ConfiguredTemplateCatalog(
                 registryConfigurationStore,
-                new Klonker.Core.Registry.RegistryCatalogService(registryHttpClient));
+                new Klonker.Core.Registry.RegistryCatalogService(registryHttpClient),
+                appSettingsStore);
             var window = new MainWindow();
             var viewModel = new MainViewModel(
                 catalog,
@@ -52,12 +56,39 @@ public partial class App : Application, IDisposable
                 favoriteStore,
                 appSettingsStore,
                 new WindowsPrerequisiteProbeService(),
-                diagnosticLog);
+                diagnosticLog,
+                tagPalette,
+                new WslGenerationService(),
+                catalogTabStore);
             var maintenanceService = new LocalDataMaintenanceService(
                 registryConfigurationStore,
                 appSettingsStore,
                 favoriteStore,
                 diagnosticLog);
+            var authoringOptions =
+                TemplateAuthoringOptionsLoader.LoadDefault();
+            window.TemplateWizardWindowFactory = () =>
+            {
+                var wizardWindow = new TemplateWizardWindow();
+                wizardWindow.DataContext = new TemplateWizardViewModel(
+                    authoringOptions,
+                    new CoreTemplateAuthoringService(),
+                    new AvaloniaTemplateAuthoringFolderPicker(wizardWindow),
+                    viewModel.Templates.Select(template => template.Template));
+                return wizardWindow;
+            };
+            window.RegistryWizardWindowFactory = () =>
+            {
+                var registryWindow = new RegistryWizardWindow();
+                registryWindow.DataContext = new RegistryWizardViewModel(
+                    registryConfigurationStore,
+                    new AvaloniaRegistryWorkspacePicker(registryWindow));
+                return registryWindow;
+            };
+            window.AboutWindowFactory = () => new AboutWindow
+            {
+                DataContext = new AboutViewModel(),
+            };
             window.SettingsWindowFactory = () => new SettingsWindow(
                 new SettingsViewModel(
                     appSettingsStore,

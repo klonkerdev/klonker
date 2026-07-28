@@ -5,6 +5,10 @@ catalog authority; template identity is qualified as
 `<registry_id>:<template_id>@<version>`. Two registries may publish the same
 template ID without being silently merged.
 
+Modules are a separate collection with identity
+`<registry_id>:<module_id>@<version>`. A registry may contain templates,
+modules, or both.
+
 ## Index
 
 ```json
@@ -28,6 +32,19 @@ template ID without being silently merged.
       "package_sha256": "64-lowercase-hex-characters",
       "package_size_bytes": 12345
     }
+  ],
+  "modules": [
+    {
+      "module_id": "std.cpp-cmake-submodule",
+      "name": "CMake C++ submodule",
+      "description": "Adds a small C++ library target.",
+      "version": "1.0.0",
+      "language": "cpp",
+      "package_path": "packages/std.cpp-cmake-submodule-1.0.0.zip",
+      "license_summary": "MIT",
+      "package_sha256": "64-lowercase-hex-characters",
+      "package_size_bytes": 6789
+    }
   ]
 }
 ```
@@ -39,9 +56,22 @@ path. A remote index resolves it relative to the index URL and requires the
 resulting URL to use HTTPS. A local index resolves it beneath the directory
 containing `registry.json`.
 
-Remote package artifacts are ZIP files whose root contains `template.toml`,
-optional presentation assets, and `content/`. `package_sha256` and
-`package_size_bytes` describe the ZIP bytes exactly.
+Remote template artifacts are ZIP files whose root contains `template.toml`,
+optional presentation assets, and `content/`. Remote module artifacts contain
+`module.toml` and `content/`. `package_sha256` and `package_size_bytes`
+describe the ZIP bytes exactly in both collections.
+
+An index may publish several versions of the same template or module ID, but
+it may not repeat the same ID and version. After source resolution, Klonker
+selects either the newest stable semantic version (the default), the newest
+version including prereleases, or an exact app-local pin. An unavailable pin
+is reported and falls back to the configured policy. Non-semantic versions
+remain loadable with a warning and deterministic ordinal ordering after
+semantic versions.
+
+If two configured sources claim the same `registry_id`, the app-local policy
+either gives the earlier configured source priority or rejects that duplicate
+registry. It never combines two authorities with the same registry ID.
 
 The development local registry may reference a directory rather than a ZIP.
 For a directory:
@@ -105,6 +135,11 @@ the checked-in sample registry.
 `KLONKER_OFFICIAL_REGISTRY_URL` can override the official URL before the first
 launch for staging tests. Once created, use the in-app Settings window to add,
 disable, remove, or rotate sources and keys.
+
+Version selection, exact pins, and duplicate-source behavior are also
+app-local settings. A pin uses a registry-qualified item key, for example
+`klonker.official:std.cpp-cli.windows-cmake=1.2.0` or
+`klonker.official:std.cpp-cmake-submodule=1.0.0`.
 
 ## Cache and offline behavior
 

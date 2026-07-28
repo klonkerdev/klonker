@@ -24,12 +24,16 @@ if (Test-Path -LiteralPath $outputRootPath) {
 
 $registryDefinitionPath = Join-Path -Path $sourceRootPath -ChildPath 'registry.toml'
 $templatesRoot = Join-Path -Path $sourceRootPath -ChildPath 'templates'
+$modulesRoot = Join-Path -Path $sourceRootPath -ChildPath 'modules'
 if (-not (Test-Path -LiteralPath $registryDefinitionPath -PathType Leaf)) {
     throw "Registry definition '$registryDefinitionPath' does not exist."
 }
 
-if (-not (Test-Path -LiteralPath $templatesRoot -PathType Container)) {
-    throw "Template source directory '$templatesRoot' does not exist."
+if (
+    -not (Test-Path -LiteralPath $templatesRoot -PathType Container) -and
+    -not (Test-Path -LiteralPath $modulesRoot -PathType Container)
+) {
+    throw "Registry source must contain a 'templates' or 'modules' directory."
 }
 
 $outputParent = [System.IO.Directory]::GetParent($outputRootPath)
@@ -249,7 +253,9 @@ function New-CatalogMarkdown {
         [string] $RegistryDisplayName,
 
         [Parameter(Mandatory)]
-        [object[]] $Packages
+        [object[]] $Packages,
+
+        [object[]] $Modules = @()
     )
 
     $lines = [System.Collections.Generic.List[string]]::new()
@@ -288,6 +294,25 @@ function New-CatalogMarkdown {
     }
 
     $lines.Add('')
+    if ($Modules.Count -gt 0) {
+        $lines.Add('## Modules')
+        $lines.Add('')
+        $lines.Add('| Module | Version | Language | License | Description |')
+        $lines.Add('| --- | --- | --- | --- | --- |')
+        foreach ($module in $Modules) {
+            $cells = @(
+                (ConvertTo-MarkdownCell -Value ([string] $module.name)),
+                (ConvertTo-MarkdownCell -Value ([string] $module.version)),
+                (ConvertTo-MarkdownCell -Value ([string] $module.language)),
+                (ConvertTo-MarkdownCell -Value ([string] $module.source_license)),
+                (ConvertTo-MarkdownCell -Value ([string] $module.description))
+            )
+            $lines.Add("| $([string]::Join(' | ', $cells)) |")
+        }
+
+        $lines.Add('')
+    }
+
     return "$([string]::Join("`n", $lines))`n"
 }
 
@@ -648,45 +673,80 @@ try {
         }
     }
 
-    $rootFiles = @(Get-ChildItem -LiteralPath $templatesRoot -File -Force)
-    if ($rootFiles.Count -gt 0) {
-        throw "The templates root may contain namespace directories only."
-    }
+    $packageManifests = @()
+    if (Test-Path -LiteralPath $templatesRoot -PathType Container) {
+        $rootFiles = @(Get-ChildItem -LiteralPath $templatesRoot -File -Force)
+        if ($rootFiles.Count -gt 0) {
+            throw "The templates root may contain namespace directories only."
+        }
 
-    $packageManifests = @(
-        $namespaceDirectories = @(
-            Get-ChildItem -LiteralPath $templatesRoot -Directory -Force |
-                Sort-Object Name)
-        foreach ($namespaceDirectory in $namespaceDirectories) {
-            $namespaceFiles = @(
-                Get-ChildItem -LiteralPath $namespaceDirectory.FullName -File -Force)
-            if ($namespaceFiles.Count -gt 0) {
-                throw "Namespace '$($namespaceDirectory.Name)' may contain package directories only."
-            }
-
-            $packageDirectories = @(
-                Get-ChildItem -LiteralPath $namespaceDirectory.FullName -Directory -Force |
+        $packageManifests = @(
+            $namespaceDirectories = @(
+                Get-ChildItem -LiteralPath $templatesRoot -Directory -Force |
                     Sort-Object Name)
-            if ($packageDirectories.Count -eq 0) {
-                throw "Namespace '$($namespaceDirectory.Name)' contains no packages."
-            }
-
-            foreach ($packageDirectory in $packageDirectories) {
-                $manifestPath = Join-Path -Path $packageDirectory.FullName -ChildPath (
-                    'package.toml')
-                if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
-                    throw "Package folder '$($packageDirectory.FullName)' is missing package.toml."
+            foreach ($namespaceDirectory in $namespaceDirectories) {
+                $namespaceFiles = @(
+                    Get-ChildItem -LiteralPath $namespaceDirectory.FullName -File -Force)
+                if ($namespaceFiles.Count -gt 0) {
+                    throw "Namespace '$($namespaceDirectory.Name)' may contain package directories only."
                 }
 
-                Get-Item -LiteralPath $manifestPath
-            }
-        })
-    if ($packageManifests.Count -eq 0) {
-        throw "No package.toml files were discovered beneath '$templatesRoot'."
+                $packageDirectories = @(
+                    Get-ChildItem -LiteralPath $namespaceDirectory.FullName -Directory -Force |
+                        Sort-Object Name)
+                foreach ($packageDirectory in $packageDirectories) {
+                    $manifestPath = Join-Path -Path $packageDirectory.FullName -ChildPath (
+                        'package.toml')
+                    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+                        throw "Package folder '$($packageDirectory.FullName)' is missing package.toml."
+                    }
+
+                    Get-Item -LiteralPath $manifestPath
+                }
+            })
+    }
+
+    $moduleManifests = @()
+    if (Test-Path -LiteralPath $modulesRoot -PathType Container) {
+        $moduleRootFiles = @(Get-ChildItem -LiteralPath $modulesRoot -File -Force)
+        if ($moduleRootFiles.Count -gt 0) {
+            throw "The modules root may contain namespace directories only."
+        }
+
+        $moduleManifests = @(
+            $moduleNamespaces = @(
+                Get-ChildItem -LiteralPath $modulesRoot -Directory -Force |
+                    Sort-Object Name)
+            foreach ($moduleNamespace in $moduleNamespaces) {
+                $namespaceFiles = @(
+                    Get-ChildItem -LiteralPath $moduleNamespace.FullName -File -Force)
+                if ($namespaceFiles.Count -gt 0) {
+                    throw "Module namespace '$($moduleNamespace.Name)' may contain module directories only."
+                }
+
+                foreach ($moduleDirectory in @(
+                    Get-ChildItem -LiteralPath $moduleNamespace.FullName -Directory -Force |
+                        Sort-Object Name
+                )) {
+                    $manifestPath = Join-Path -Path $moduleDirectory.FullName -ChildPath (
+                        'module.toml')
+                    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+                        throw "Module folder '$($moduleDirectory.FullName)' is missing module.toml."
+                    }
+
+                    Get-Item -LiteralPath $manifestPath
+                }
+            })
+    }
+
+    if ($packageManifests.Count -eq 0 -and $moduleManifests.Count -eq 0) {
+        throw "No template packages or modules were discovered."
     }
 
     $registryEntries = [System.Collections.Generic.List[object]]::new()
+    $registryModules = [System.Collections.Generic.List[object]]::new()
     $catalogPackages = [System.Collections.Generic.List[object]]::new()
+    $catalogModules = [System.Collections.Generic.List[object]]::new()
     $templateIds = [System.Collections.Generic.HashSet[string]]::new(
         [System.StringComparer]::OrdinalIgnoreCase)
     foreach ($packageManifest in $packageManifests) {
@@ -999,6 +1059,142 @@ try {
         })
     }
 
+    $moduleIds = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($moduleManifest in $moduleManifests) {
+        $moduleRoot = $moduleManifest.DirectoryName
+        $moduleRelativePath = [System.IO.Path]::GetRelativePath(
+            $modulesRoot,
+            $moduleManifest.FullName).Replace('\', '/')
+        $pathSegments = @($moduleRelativePath.Split('/'))
+        if (
+            $pathSegments.Count -ne 3 -or
+            $pathSegments[2] -cne 'module.toml'
+        ) {
+            throw "Module manifest '$moduleRelativePath' must use modules/<namespace>/<module>/module.toml."
+        }
+
+        Assert-Identifier -Value $pathSegments[0] -Context 'Module namespace'
+        Assert-Identifier -Value $pathSegments[1] -Context 'Module folder'
+        Assert-NoReparsePoints `
+            -Root $moduleRoot `
+            -Context "Module source '$moduleRelativePath'"
+
+        $moduleToml = Get-Content -LiteralPath $moduleManifest.FullName -Raw
+        $moduleContext = "Module manifest '$moduleRelativePath'"
+        if (
+            (Get-TomlInteger `
+                -Toml $moduleToml `
+                -Property 'schema_version' `
+                -Context $moduleContext) -ne 0
+        ) {
+            throw "$moduleContext schema_version must be 0."
+        }
+
+        if (
+            (Get-TomlTopLevel -Toml $moduleToml) -match
+                '(?m)^\s*favorite\s*='
+        ) {
+            throw "$moduleContext cannot declare app-local property 'favorite'."
+        }
+
+        $moduleId = Get-TomlString `
+            -Toml $moduleToml `
+            -Property 'id' `
+            -Context $moduleContext
+        $expectedModuleId = "$($pathSegments[0]).$($pathSegments[1])"
+        if ($moduleId -cne $expectedModuleId) {
+            throw "$moduleContext ID must be '$expectedModuleId' to match its folders."
+        }
+
+        $moduleName = Get-TomlString `
+            -Toml $moduleToml `
+            -Property 'name' `
+            -Context $moduleContext
+        $moduleDescription = Get-TomlString `
+            -Toml $moduleToml `
+            -Property 'description' `
+            -Context $moduleContext
+        $moduleVersion = Get-TomlString `
+            -Toml $moduleToml `
+            -Property 'version' `
+            -Context $moduleContext
+        $moduleLanguage = Get-TomlString `
+            -Toml $moduleToml `
+            -Property 'language' `
+            -Context $moduleContext
+        Assert-Identifier -Value $moduleLanguage -Context 'Module language'
+        $moduleLicense = Get-TomlString `
+            -Toml $moduleToml `
+            -Property 'source_license' `
+            -Context $moduleContext
+        $moduleTags = Get-TomlStringArray `
+            -Toml $moduleToml `
+            -Property 'tags' `
+            -Context $moduleContext `
+            -Optional
+        $versionedModuleId = "$moduleId@$moduleVersion"
+        if (-not $moduleIds.Add($versionedModuleId)) {
+            throw "Discovered duplicate module '$versionedModuleId'."
+        }
+
+        $entries = [System.Collections.Generic.Dictionary[string, object]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase)
+        Add-SourceTree `
+            -Entries $entries `
+            -Root $moduleRoot `
+            -ExcludedRelativePaths @() `
+            -ExcludedPrefixes @() `
+            -Context "Module '$moduleId'"
+        Assert-NoFileDirectoryCollisions `
+            -Entries $entries `
+            -Context "Module '$moduleId'"
+        $contentEntries = @(
+            $entries.Keys |
+                Where-Object {
+                    $_.StartsWith(
+                        'content/',
+                        [System.StringComparison]::Ordinal)
+                })
+        if ($contentEntries.Count -eq 0) {
+            throw "Module '$moduleId' does not contain content files."
+        }
+
+        $archiveName = "$moduleId-$moduleVersion.zip"
+        $archivePath = Join-Path -Path $packagesOutput -ChildPath $archiveName
+        New-DeterministicPackageArchive `
+            -Entries $entries `
+            -ArchivePath $archivePath
+        $archive = Get-Item -LiteralPath $archivePath
+        $checksum = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).
+            Hash.ToLowerInvariant()
+
+        $registryModules.Add([ordered] @{
+            module_id = $moduleId
+            name = $moduleName
+            description = $moduleDescription
+            version = $moduleVersion
+            language = $moduleLanguage
+            package_path = "packages/$archiveName"
+            license_summary = $moduleLicense
+            package_sha256 = $checksum
+            package_size_bytes = [int64] $archive.Length
+            tags = @($moduleTags)
+        })
+        $catalogModules.Add([ordered] @{
+            id = $moduleId
+            name = $moduleName
+            description = $moduleDescription
+            version = $moduleVersion
+            language = $moduleLanguage
+            source_license = $moduleLicense
+            tags = @($moduleTags)
+            package_path = "packages/$archiveName"
+            package_sha256 = $checksum
+            package_size_bytes = [int64] $archive.Length
+        })
+    }
+
     $registry = [ordered] @{
         schema_version = 1
         registry_id = $registryId
@@ -1007,6 +1203,13 @@ try {
             $registryEntries |
                 Sort-Object {
                     [string] $_.template_id
+                }, {
+                    [string] $_.version
+                })
+        modules = @(
+            $registryModules |
+                Sort-Object {
+                    [string] $_.module_id
                 }, {
                     [string] $_.version
                 })
@@ -1030,6 +1233,13 @@ try {
                 Sort-Object {
                     [string] $_.family_id
                 })
+        modules = @(
+            $catalogModules |
+                Sort-Object {
+                    [string] $_.id
+                }, {
+                    [string] $_.version
+                })
     }
     $catalogJson = Normalize-LineEndings -Text (
         $catalog | ConvertTo-Json -Depth 10)
@@ -1039,7 +1249,8 @@ try {
         $utf8)
     $catalogMarkdown = New-CatalogMarkdown `
         -RegistryDisplayName $registryDisplayName `
-        -Packages @($catalog.packages)
+        -Packages @($catalog.packages) `
+        -Modules @($catalog.modules)
     [System.IO.File]::WriteAllText(
         (Join-Path -Path $stagingRoot -ChildPath 'catalog.md'),
         $catalogMarkdown,
@@ -1085,7 +1296,8 @@ try {
 
     Move-Item -LiteralPath $stagingRoot -Destination $outputRootPath
     Write-Host (
-        "Discovered $($registryEntries.Count) template variants and wrote " +
+        "Discovered $($registryEntries.Count) template variants and " +
+        "$($registryModules.Count) modules; wrote " +
         "registry artifacts to '$outputRootPath'.")
 }
 finally {

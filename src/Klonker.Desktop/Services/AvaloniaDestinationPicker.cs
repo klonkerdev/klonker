@@ -20,7 +20,7 @@ public sealed class AvaloniaDestinationPicker : IDestinationPicker
             new FolderPickerOpenOptions
             {
                 AllowMultiple = false,
-                Title = "Choose an empty project destination",
+                Title = "Choose a generation destination",
             });
         cancellationToken.ThrowIfCancellationRequested();
         return folders.Count == 0

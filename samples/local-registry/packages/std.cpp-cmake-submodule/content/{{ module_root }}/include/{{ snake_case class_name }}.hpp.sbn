@@ -1,0 +1,10 @@
+#pragma once
+
+namespace {{ snake_case library_name }}
+{
+class {{ class_name }}
+{
+public:
+    [[nodiscard]] const char* name() const noexcept;
+};
+}

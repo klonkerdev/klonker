@@ -93,11 +93,14 @@ public static partial class RegistryIndexLoader
                 sourceDescription,
                 issues);
 
-            if (!string.IsNullOrWhiteSpace(item.TemplateId) && !ids.Add(item.TemplateId))
+            var versionedId = $"{item.TemplateId}\n{item.Version}";
+            if (!string.IsNullOrWhiteSpace(item.TemplateId) &&
+                !string.IsNullOrWhiteSpace(item.Version) &&
+                !ids.Add(versionedId))
             {
                 issues.Add(Error(
                     "registry.template_duplicate",
-                    $"Template ID '{item.TemplateId}' appears more than once in this registry.",
+                    $"Template ID '{item.TemplateId}' version '{item.Version}' appears more than once in this registry.",
                     sourceDescription));
             }
 
@@ -157,6 +160,98 @@ public static partial class RegistryIndexLoader
             }
         }
 
+        var moduleEntries = ImmutableArray.CreateBuilder<RegistryModuleEntry>();
+        var moduleIds = new HashSet<string>(StringComparer.Ordinal);
+        var modules = dto.Modules ?? [];
+        for (var index = 0; index < modules.Count; index++)
+        {
+            var item = modules[index];
+            var context = $"modules[{index}]";
+            ValidateRequired(item.ModuleId, $"{context}.module_id", sourceDescription, issues);
+            ValidateRequired(item.Name, $"{context}.name", sourceDescription, issues);
+            ValidateRequired(item.Description, $"{context}.description", sourceDescription, issues);
+            ValidateRequired(item.Version, $"{context}.version", sourceDescription, issues);
+            ValidateRequired(item.Language, $"{context}.language", sourceDescription, issues);
+            ValidateRequired(item.PackagePath, $"{context}.package_path", sourceDescription, issues);
+            ValidateRequired(item.LicenseSummary, $"{context}.license_summary", sourceDescription, issues);
+            ValidateRequired(item.PackageSha256, $"{context}.package_sha256", sourceDescription, issues);
+
+            var versionedId = $"{item.ModuleId}\n{item.Version}";
+            if (!string.IsNullOrWhiteSpace(item.ModuleId) &&
+                !string.IsNullOrWhiteSpace(item.Version) &&
+                !moduleIds.Add(versionedId))
+            {
+                issues.Add(Error(
+                    "registry.module_duplicate",
+                    $"Module ID '{item.ModuleId}' version '{item.Version}' appears more than once in this registry.",
+                    sourceDescription));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.ModuleId) &&
+                !ModuleIdRegex().IsMatch(item.ModuleId))
+            {
+                issues.Add(Error(
+                    "registry.module_id_invalid",
+                    $"Registry property '{context}.module_id' must be a lowercase dot-separated module ID.",
+                    sourceDescription));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.PackagePath))
+            {
+                var packagePath = SafePath.NormalizeRelative(item.PackagePath);
+                issues.AddRange(packagePath.Issues.Select(issue =>
+                    issue with { Path = $"{context}.package_path" }));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.PackageSha256) &&
+                !Sha256Regex().IsMatch(item.PackageSha256))
+            {
+                issues.Add(Error(
+                    "registry.package_checksum_invalid",
+                    $"Registry property '{context}.package_sha256' must be a 64-character SHA-256 value.",
+                    sourceDescription));
+            }
+
+            if (item.PackageSizeBytes <= 0)
+            {
+                issues.Add(Error(
+                    "registry.package_size_invalid",
+                    $"Registry property '{context}.package_size_bytes' must be greater than zero.",
+                    sourceDescription));
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.Language) &&
+                !LanguageIdRegex().IsMatch(item.Language))
+            {
+                issues.Add(Error(
+                    "registry.language_invalid",
+                    $"Registry property '{context}.language' must be a lowercase language ID.",
+                    sourceDescription));
+            }
+
+            if (HasRequiredProperties(item) &&
+                Sha256Regex().IsMatch(item.PackageSha256!) &&
+                item.PackageSizeBytes > 0 &&
+                ModuleIdRegex().IsMatch(item.ModuleId!))
+            {
+                moduleEntries.Add(new RegistryModuleEntry(
+                    item.ModuleId!,
+                    item.Name!,
+                    item.Description!,
+                    item.Version!,
+                    item.Language!,
+                    item.PackagePath!.Replace('\\', '/'),
+                    item.LicenseSummary!,
+                    item.PackageSha256!.ToLowerInvariant(),
+                    item.PackageSizeBytes,
+                    (item.Tags ?? [])
+                        .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Order(StringComparer.OrdinalIgnoreCase)
+                        .ToImmutableArray()));
+            }
+        }
+
         if (issues.Any(issue => issue.Severity == ValidationSeverity.Error))
         {
             return new OperationResult<RegistryIndex>(null, issues);
@@ -167,9 +262,20 @@ public static partial class RegistryIndexLoader
                 dto.SchemaVersion,
                 dto.RegistryId!,
                 dto.DisplayName!,
-                entries.ToImmutable()),
+                entries.ToImmutable(),
+                moduleEntries.ToImmutable()),
             issues);
     }
+
+    private static bool HasRequiredProperties(RegistryModuleDto item) =>
+        !string.IsNullOrWhiteSpace(item.ModuleId) &&
+        !string.IsNullOrWhiteSpace(item.Name) &&
+        !string.IsNullOrWhiteSpace(item.Description) &&
+        !string.IsNullOrWhiteSpace(item.Version) &&
+        !string.IsNullOrWhiteSpace(item.Language) &&
+        !string.IsNullOrWhiteSpace(item.PackagePath) &&
+        !string.IsNullOrWhiteSpace(item.LicenseSummary) &&
+        !string.IsNullOrWhiteSpace(item.PackageSha256);
 
     private static bool HasRequiredProperties(RegistryTemplateDto item) =>
         !string.IsNullOrWhiteSpace(item.FamilyId) &&
@@ -227,6 +333,9 @@ public static partial class RegistryIndexLoader
 
         [JsonPropertyName("templates")]
         public List<RegistryTemplateDto>? Templates { get; init; } = [];
+
+        [JsonPropertyName("modules")]
+        public List<RegistryModuleDto>? Modules { get; init; } = [];
     }
 
     private sealed class RegistryTemplateDto
@@ -270,4 +379,42 @@ public static partial class RegistryIndexLoader
         [JsonPropertyName("package_size_bytes")]
         public long PackageSizeBytes { get; init; }
     }
+
+    private sealed class RegistryModuleDto
+    {
+        [JsonPropertyName("module_id")]
+        public string? ModuleId { get; init; }
+
+        [JsonPropertyName("name")]
+        public string? Name { get; init; }
+
+        [JsonPropertyName("description")]
+        public string? Description { get; init; }
+
+        [JsonPropertyName("version")]
+        public string? Version { get; init; }
+
+        [JsonPropertyName("language")]
+        public string? Language { get; init; }
+
+        [JsonPropertyName("package_path")]
+        public string? PackagePath { get; init; }
+
+        [JsonPropertyName("license_summary")]
+        public string? LicenseSummary { get; init; }
+
+        [JsonPropertyName("package_sha256")]
+        public string? PackageSha256 { get; init; }
+
+        [JsonPropertyName("package_size_bytes")]
+        public long PackageSizeBytes { get; init; }
+
+        [JsonPropertyName("tags")]
+        public List<string>? Tags { get; init; } = [];
+    }
+
+    [GeneratedRegex(
+        @"\A[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+\z",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex ModuleIdRegex();
 }

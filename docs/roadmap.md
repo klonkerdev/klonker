@@ -57,6 +57,8 @@
   families through the discovered registry hierarchy
 - [x] add a validated self-contained Windows x64 nightly release workflow
 - [x] add an in-app registry/application settings editor
+- [x] add an in-app About window with build, project, license, and author
+  information
 - [x] persist user favorites outside template manifests
 - [x] verify detached registry signatures with publisher trust and key
   rotation/revocation
@@ -66,6 +68,24 @@
   or executing tools
 - [x] generate repository Markdown and static-site JSON catalogs from
   discovered registry sources
+- [x] add a guided template-authoring wizard with data-driven language,
+  build-system, platform, and license choices
+- [x] inspect existing runtime/source packages and safely convert ordinary
+  code folders into detached registry-source packages
+- [x] support platform-independent `any` targets and multi-build
+  platform/build-system variant matrices
+- [x] derive detached authoring packages from loaded catalog templates
+- [x] add a registry workspace wizard for generic local builds, app-local
+  development registration, production signing setup, and key-safe rotation
+  guidance
+- [x] add deterministic registry source/version conflict policy with stable
+  preference, prerelease opt-in, and app-local exact pins
+- [x] generate projects and modules inside a selected running WSL
+  distribution with read-back verification
+- [x] add separately indexed reusable modules, configurable path slots,
+  non-empty-tree preflight, post-generation instructions, and dependency
+  license aggregation
+- [x] add app-local favorite/curated template or module catalog tabs
 
 ## Next milestones
 
@@ -75,9 +95,6 @@
 
 ## Deferred
 
-- [ ] advanced registry conflict/version-selection policy
-- [ ] generation inside a selected WSL distribution
-- [ ] reusable modules/slots and dependency-license aggregation
 - [ ] additional official template families in the separate registry
 - [ ] plugins, MCP, or coding-agent integration
 - [ ] any project build, execution, import, update, or management behavior

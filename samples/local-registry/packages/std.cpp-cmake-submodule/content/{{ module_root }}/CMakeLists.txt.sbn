@@ -1,0 +1,10 @@
+add_library({{ snake_case library_name }}
+    src/{{ snake_case class_name }}.cpp
+)
+
+target_include_directories({{ snake_case library_name }}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_compile_features({{ snake_case library_name }} PUBLIC cxx_std_20)

@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using Klonker.Core.Registry;
+
 namespace Klonker.Desktop.Services;
 
 public sealed record AppSettingsSnapshot(
@@ -6,4 +9,9 @@ public sealed record AppSettingsSnapshot(
     bool DiagnosticLoggingEnabled,
     DiagnosticLogLevel DiagnosticLogLevel,
     bool PrerequisiteProbesEnabled,
-    int RegistryDownloadTimeoutSeconds);
+    int RegistryDownloadTimeoutSeconds,
+    RegistryVersionPreference RegistryVersionPreference =
+        RegistryVersionPreference.LatestStable,
+    ImmutableDictionary<string, string>? RegistryVersionPins = null,
+    RegistryDuplicateSourcePolicy RegistryDuplicateSourcePolicy =
+        RegistryDuplicateSourcePolicy.PreferFirstConfiguredSource);

@@ -1,7 +1,9 @@
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Klonker.Core.Diagnostics;
+using Klonker.Core.Registry;
 
 namespace Klonker.Desktop.Services;
 
@@ -97,6 +99,26 @@ public sealed class AppSettingsStore
                         "Registry download timeout must be between 5 and 120 seconds."));
                 }
 
+                if (!Enum.TryParse<RegistryVersionPreference>(
+                        dto.RegistryVersionPreference,
+                        ignoreCase: false,
+                        out var versionPreference))
+                {
+                    issues.Add(Error(
+                        "settings.registry_version_preference_invalid",
+                        "The registry version preference is not supported."));
+                }
+
+                if (!Enum.TryParse<RegistryDuplicateSourcePolicy>(
+                        dto.RegistryDuplicateSourcePolicy,
+                        ignoreCase: false,
+                        out var duplicateSourcePolicy))
+                {
+                    issues.Add(Error(
+                        "settings.registry_duplicate_policy_invalid",
+                        "The duplicate registry source policy is not supported."));
+                }
+
                 if (issues.Any(issue => issue.Severity == ValidationSeverity.Error))
                 {
                     return new OperationResult<AppSettingsSnapshot>(null, issues);
@@ -109,7 +131,18 @@ public sealed class AppSettingsStore
                         dto.DiagnosticLoggingEnabled,
                         logLevel,
                         dto.PrerequisiteProbesEnabled,
-                        dto.RegistryDownloadTimeoutSeconds),
+                        dto.RegistryDownloadTimeoutSeconds,
+                        versionPreference,
+                        (dto.RegistryVersionPins ??
+                         new Dictionary<string, string>())
+                            .Where(pair =>
+                                !string.IsNullOrWhiteSpace(pair.Key) &&
+                                !string.IsNullOrWhiteSpace(pair.Value))
+                            .ToImmutableDictionary(
+                                pair => pair.Key,
+                                pair => pair.Value,
+                                StringComparer.Ordinal),
+                        duplicateSourcePolicy),
                     issues);
             }
             catch (JsonException exception)
@@ -162,7 +195,10 @@ public sealed class AppSettingsStore
             DiagnosticLoggingEnabled: false,
             DiagnosticLogLevel.Information,
             PrerequisiteProbesEnabled: false,
-            DefaultRegistryDownloadTimeoutSeconds);
+            DefaultRegistryDownloadTimeoutSeconds,
+            RegistryVersionPreference.LatestStable,
+            RegistryVersionPins: null,
+            RegistryDuplicateSourcePolicy.PreferFirstConfiguredSource);
 
     private OperationResult<AppSettingsSnapshot> SaveCore(
         AppSettingsSnapshot settings)
@@ -176,6 +212,16 @@ public sealed class AppSettingsStore
             PrerequisiteProbesEnabled = settings.PrerequisiteProbesEnabled,
             RegistryDownloadTimeoutSeconds =
                 settings.RegistryDownloadTimeoutSeconds,
+            RegistryVersionPreference =
+                settings.RegistryVersionPreference.ToString(),
+            RegistryVersionPins = settings.RegistryVersionPins?
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value,
+                    StringComparer.Ordinal),
+            RegistryDuplicateSourcePolicy =
+                settings.RegistryDuplicateSourcePolicy.ToString(),
         };
 
         try
@@ -246,5 +292,21 @@ public sealed class AppSettingsStore
         [JsonPropertyName("registry_download_timeout_seconds")]
         public int RegistryDownloadTimeoutSeconds { get; set; } =
             DefaultRegistryDownloadTimeoutSeconds;
+
+        [JsonPropertyName("registry_version_preference")]
+        public string? RegistryVersionPreference { get; set; } =
+            Klonker.Core.Registry.RegistryVersionPreference
+                .LatestStable
+                .ToString();
+
+        [JsonPropertyName("registry_version_pins")]
+        public Dictionary<string, string>? RegistryVersionPins { get; set; } =
+            new(StringComparer.Ordinal);
+
+        [JsonPropertyName("registry_duplicate_source_policy")]
+        public string? RegistryDuplicateSourcePolicy { get; set; } =
+            Klonker.Core.Registry.RegistryDuplicateSourcePolicy
+                .PreferFirstConfiguredSource
+                .ToString();
     }
 }

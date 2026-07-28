@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "licenses": [
+    {
+      "id": "none",
+      "name": "No license",
+      "source_license": "None",
+      "summary": "Generated source: no license declared"
+    },
+    {
+      "id": "mit",
+      "name": "MIT",
+      "source_license": "MIT",
+      "summary": "Generated source: MIT"
+    },
+    {
+      "id": "apache-2.0",
+      "name": "Apache 2.0",
+      "source_license": "Apache-2.0",
+      "summary": "Generated source: Apache-2.0"
+    },
+    {
+      "id": "gpl-3.0",
+      "name": "GNU GPL 3.0",
+      "source_license": "GPL-3.0-only",
+      "summary": "Generated source: GPL-3.0-only"
+    },
+    {
+      "id": "mpl-2.0",
+      "name": "Mozilla Public License 2.0",
+      "source_license": "MPL-2.0",
+      "summary": "Generated source: MPL-2.0"
+    }
+  ],
+  "platforms": [
+    {
+      "id": "any",
+      "name": "Any platform",
+      "description": "Platform-independent projects that do not target one operating system"
+    },
+    {
+      "id": "windows",
+      "name": "Windows",
+      "description": "Windows desktop and command-line projects"
+    },
+    {
+      "id": "linux",
+      "name": "Linux",
+      "description": "Linux desktop, server, and command-line projects"
+    },
+    {
+      "id": "macos",
+      "name": "macOS",
+      "description": "Apple desktop and command-line projects"
+    }
+  ],
+  "build_systems": [
+    {
+      "id": "none",
+      "name": "No build system",
+      "description": "The language can run or be consumed without generated build files.",
+      "seed_files": []
+    },
+    {
+      "id": "cmake",
+      "name": "CMake",
+      "description": "Portable C and C++ project configuration.",
+      "seed_files": [
+        {
+          "path": "CMakeLists.txt.sbn",
+          "content": "cmake_minimum_required(VERSION 3.20)\nproject({{ project_name }} LANGUAGES CXX)\nset(CMAKE_CXX_STANDARD 20)\nadd_executable({{ project_name }} src/main.cpp)\n"
+        }
+      ]
+    },
+    {
+      "id": "make",
+      "name": "GNU Make",
+      "description": "A compact Makefile for native projects.",
+      "seed_files": [
+        {
+          "path": "Makefile.sbn",
+          "content": "CXX ?= c++\nCXXFLAGS ?= -std=c++20 -Wall -Wextra\n\n{{ project_name }}: src/main.cpp\n\t$(CXX) $(CXXFLAGS) -o $@ $<\n"
+        }
+      ]
+    },
+    {
+      "id": "xmake",
+      "name": "xmake",
+      "description": "A concise cross-platform native build definition.",
+      "seed_files": [
+        {
+          "path": "xmake.lua.sbn",
+          "content": "set_languages(\"cxx20\")\ntarget(\"{{ project_name }}\")\n    set_kind(\"binary\")\n    add_files(\"src/*.cpp\")\n"
+        }
+      ]
+    },
+    {
+      "id": "dotnet",
+      "name": ".NET SDK",
+      "description": "SDK-style .NET project files.",
+      "seed_files": [
+        {
+          "path": "{{ project_name }}.csproj.sbn",
+          "content": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n</Project>\n"
+        }
+      ]
+    },
+    {
+      "id": "cargo",
+      "name": "Cargo",
+      "description": "Rust package and build metadata.",
+      "seed_files": [
+        {
+          "path": "Cargo.toml.sbn",
+          "content": "[package]\nname = \"{{ project_name | kebab_case }}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n"
+        }
+      ]
+    },
+    {
+      "id": "npm",
+      "name": "npm",
+      "description": "JavaScript package metadata and scripts.",
+      "seed_files": [
+        {
+          "path": "package.json.sbn",
+          "content": "{\n  \"name\": \"{{ project_name | kebab_case }}\",\n  \"version\": \"0.1.0\",\n  \"private\": true\n}\n"
+        }
+      ]
+    }
+  ],
+  "languages": [
+    {
+      "id": "cpp",
+      "name": "C++",
+      "description": "Native applications and libraries",
+      "build_systems": ["cmake", "make", "xmake"],
+      "seed_files": [
+        {
+          "path": "src/main.cpp.sbn",
+          "content": "#include <iostream>\n\nint main() {\n    std::cout << \"Hello from {{ project_name }}!\\n\";\n    return 0;\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "csharp",
+      "name": "C#",
+      "description": "Cross-platform .NET applications",
+      "build_systems": ["dotnet"],
+      "seed_files": [
+        {
+          "path": "Program.cs.sbn",
+          "content": "Console.WriteLine(\"Hello from {{ project_name }}!\");\n"
+        }
+      ]
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "description": "Safe native applications and libraries",
+      "build_systems": ["cargo"],
+      "seed_files": [
+        {
+          "path": "src/main.rs.sbn",
+          "content": "fn main() {\n    println!(\"Hello from {{ project_name }}!\");\n}\n"
+        }
+      ]
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "description": "Scripts, automation, and applications",
+      "build_systems": ["none"],
+      "seed_files": [
+        {
+          "path": "main.py.sbn",
+          "content": "print(\"Hello from {{ project_name }}!\")\n"
+        }
+      ]
+    },
+    {
+      "id": "javascript",
+      "name": "JavaScript",
+      "description": "Node.js applications and tools",
+      "build_systems": ["npm"],
+      "seed_files": [
+        {
+          "path": "index.js.sbn",
+          "content": "console.log(\"Hello from {{ project_name }}!\");\n"
+        }
+      ]
+    },
+    {
+      "id": "lua",
+      "name": "Lua",
+      "description": "Portable embedded scripts and applications",
+      "build_systems": ["none"],
+      "seed_files": [
+        {
+          "path": "main.lua.sbn",
+          "content": "print(\"Hello from {{ project_name }}!\")\n"
+        }
+      ]
+    }
+  ]
+}

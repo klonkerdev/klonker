@@ -38,7 +38,7 @@
       <TabControl>
         <TabItem Header="Registries">
           <Grid Margin="12"
-                RowDefinitions="Auto,*"
+                RowDefinitions="Auto,Auto,*"
                 RowSpacing="10">
             <Grid ColumnDefinitions="*,Auto"
                   ColumnSpacing="10">
@@ -63,7 +63,64 @@
               </StackPanel>
             </Grid>
 
-            <ScrollViewer Grid.Row="1"
+            <Expander Grid.Row="1"
+                      Header="Conflict &amp; version-selection policy">
+              <Border Margin="0,8,0,0"
+                      Padding="11"
+                      Background="{StaticResource InputBrush}"
+                      BorderBrush="{StaticResource BorderBrush}"
+                      BorderThickness="1"
+                      CornerRadius="6">
+                <Grid RowDefinitions="Auto,Auto"
+                      ColumnDefinitions="*,*"
+                      RowSpacing="9"
+                      ColumnSpacing="9">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Version preference" />
+                    <TextBlock Margin="0,3,0,7"
+                               Classes="muted"
+                               FontSize="10"
+                               TextWrapping="Wrap"
+                               Text="Latest stable ignores prereleases while a stable candidate exists." />
+                    <ComboBox Classes="field"
+                              ItemsSource="{Binding RegistryVersionPreferenceOptions}"
+                              SelectedItem="{Binding RegistryVersionPreference, Mode=TwoWay}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Duplicate registry ID" />
+                    <TextBlock Margin="0,3,0,7"
+                               Classes="muted"
+                               FontSize="10"
+                               TextWrapping="Wrap"
+                               Text="Source order is explicit: prefer the first source or reject the conflict." />
+                    <ComboBox Classes="field"
+                              ItemsSource="{Binding RegistryDuplicateSourcePolicyOptions}"
+                              SelectedItem="{Binding RegistryDuplicateSourcePolicy, Mode=TwoWay}" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1"
+                              Grid.ColumnSpan="2">
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Exact version pins" />
+                    <TextBlock Margin="0,3,0,7"
+                               Classes="muted"
+                               FontSize="10"
+                               TextWrapping="Wrap"
+                               Text="One registry:item=version entry per line. Pins apply to templates and modules; unavailable pins produce a visible fallback warning." />
+                    <TextBox Classes="field"
+                             AcceptsReturn="True"
+                             MinHeight="70"
+                             FontFamily="Cascadia Mono,Consolas"
+                             FontSize="10"
+                             PlaceholderText="registry.id:item.id=1.2.3"
+                             Text="{Binding RegistryVersionPinsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </Expander>
+
+            <ScrollViewer Grid.Row="2"
                           VerticalScrollBarVisibility="Auto">
               <ItemsControl ItemsSource="{Binding RegistrySources}">
                 <ItemsControl.ItemTemplate>

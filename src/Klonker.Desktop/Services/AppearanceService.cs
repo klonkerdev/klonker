@@ -7,15 +7,24 @@ namespace Klonker.Desktop.Services;
 public sealed class AppearanceService
 {
     private readonly Func<Application?> applicationAccessor;
+    private readonly TemplateTagPalette tagPalette;
 
     public AppearanceService()
-        : this(() => Application.Current)
+        : this(new TemplateTagPalette())
     {
     }
 
-    internal AppearanceService(Func<Application?> applicationAccessor)
+    public AppearanceService(TemplateTagPalette tagPalette)
+        : this(() => Application.Current, tagPalette)
+    {
+    }
+
+    internal AppearanceService(
+        Func<Application?> applicationAccessor,
+        TemplateTagPalette tagPalette)
     {
         this.applicationAccessor = applicationAccessor;
+        this.tagPalette = tagPalette;
     }
 
     public void Apply(AppAppearance appearance)
@@ -23,6 +32,7 @@ public sealed class AppearanceService
         var application = applicationAccessor();
         if (application is null)
         {
+            tagPalette.Apply(appearance == AppAppearance.Light);
             return;
         }
 
@@ -37,6 +47,7 @@ public sealed class AppearanceService
             (appearance == AppAppearance.System &&
              application.ActualThemeVariant == ThemeVariant.Light);
         var palette = useLightPalette ? LightPalette : DarkPalette;
+        tagPalette.Apply(useLightPalette);
         foreach (var item in palette)
         {
             var color = Color.Parse(item.Value);

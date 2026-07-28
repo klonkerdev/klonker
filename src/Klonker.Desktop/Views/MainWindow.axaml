@@ -68,13 +68,37 @@
         <StackPanel Grid.Column="2"
                     Orientation="Horizontal"
                     Spacing="1">
+          <Button AutomationProperties.Name="Registry workspace"
+                  Classes="icon"
+                  Click="OnRegistryWizardClicked"
+                  ToolTip.Tip="Create, build, sign, or test a registry">
+            <PathIcon Width="16"
+                      Height="16"
+                      Data="{StaticResource IconFolder}" />
+          </Button>
+          <Button AutomationProperties.Name="Template wizard"
+                  Classes="icon"
+                  Click="OnTemplateWizardClicked"
+                  ToolTip.Tip="Create or inspect a template package">
+            <PathIcon Width="16"
+                      Height="16"
+                      Data="{StaticResource IconPackage}" />
+          </Button>
           <Button AutomationProperties.Name="Settings"
                   Classes="icon"
                   Click="OnSettingsClicked"
                   ToolTip.Tip="Settings">
             <PathIcon Width="15"
                       Height="15"
-                      Data="{StaticResource IconSettings}" />
+                       Data="{StaticResource IconSettings}" />
+          </Button>
+          <Button AutomationProperties.Name="About Klonker"
+                  Classes="icon"
+                  Click="OnAboutClicked"
+                  ToolTip.Tip="About Klonker">
+            <PathIcon Width="16"
+                      Height="16"
+                      Data="{StaticResource IconInfo}" />
           </Button>
           <Button AutomationProperties.Name="Minimize"
                   Classes="icon"
@@ -115,6 +139,7 @@
     <Grid Grid.Row="1">
       <views:CatalogView IsVisible="{Binding IsCatalogView}" />
       <views:ConfigurationView IsVisible="{Binding IsConfigurationView}" />
+      <views:ModuleConfigurationView IsVisible="{Binding IsModuleConfigurationView}" />
     </Grid>
   </Grid>
 </Window>

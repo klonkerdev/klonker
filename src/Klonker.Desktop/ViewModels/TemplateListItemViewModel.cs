@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Klonker.Core.Registry;
 using Klonker.Core.Templates;
+using Klonker.Desktop.Services;
 
 namespace Klonker.Desktop.ViewModels;
 
@@ -8,12 +9,14 @@ public sealed partial class TemplateListItemViewModel : ViewModelBase
 {
     public TemplateListItemViewModel(
         RegistryTemplatePackage template,
-        bool isFavorite = false)
+        bool isFavorite = false,
+        TemplateTagPalette? tagPalette = null)
     {
         Template = template;
         IsFavorite = isFavorite;
+        tagPalette ??= new TemplateTagPalette();
         TagChips = Tags
-            .Select(tag => new TemplateTagViewModel(tag))
+            .Select(tag => new TemplateTagViewModel(tag, tagPalette))
             .ToArray();
     }
 
@@ -102,7 +105,11 @@ public sealed partial class TemplateListItemViewModel : ViewModelBase
             "linux",
             StringComparison.OrdinalIgnoreCase)
             ? "Linux"
-            : Package.Manifest.TargetOs;
+            : Package.Manifest.TargetOs.Equals(
+                "any",
+                StringComparison.OrdinalIgnoreCase)
+                ? "Any platform"
+                : Package.Manifest.TargetOs;
 
     public string BuildSystem => Package.Manifest.BuildSystem.Equals(
         "cmake",

@@ -7,4 +7,5 @@ public sealed record LocalRegistryCatalog(
     string RegistryId,
     string DisplayName,
     string RootPath,
-    ImmutableArray<RegistryTemplateEntry> Templates);
+    ImmutableArray<RegistryTemplateEntry> Templates,
+    ImmutableArray<RegistryModuleEntry> Modules = default);

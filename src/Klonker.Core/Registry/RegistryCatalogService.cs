@@ -3,6 +3,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Klonker.Core.Diagnostics;
+using Klonker.Core.Modules;
 using Klonker.Core.Templates;
 
 namespace Klonker.Core.Registry;
@@ -47,10 +48,12 @@ public sealed class RegistryCatalogService
         Directory.CreateDirectory(cacheRoot);
 
         var templates = ImmutableArray.CreateBuilder<RegistryTemplatePackage>();
+        var modules = ImmutableArray.CreateBuilder<RegistryModulePackage>();
         var issues = new List<ValidationIssue>();
         var failedSourceIssues = new List<(RegistrySource Source, ValidationIssue Issue)>();
         var registryIds = new HashSet<string>(StringComparer.Ordinal);
         var qualifiedTemplates = new HashSet<string>(StringComparer.Ordinal);
+        var qualifiedModules = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var source in enabledSources)
         {
@@ -80,43 +83,68 @@ public sealed class RegistryCatalogService
 
             issues.AddRange(result.Issues);
             var sourceTemplates = result.Value!.Templates;
-            var registryId = sourceTemplates.FirstOrDefault()?.RegistryId;
+            var sourceModules = result.Value.Modules.IsDefault
+                ? []
+                : result.Value.Modules;
+            var registryId = sourceTemplates.FirstOrDefault()?.RegistryId ??
+                sourceModules.FirstOrDefault()?.RegistryId;
             if (registryId is null)
             {
                 failedSourceIssues.Add((
                     source,
                     Error(
                         "registry.source_empty",
-                        $"Registry source '{source.Name}' contains no usable templates.")));
+                        $"Registry source '{source.Name}' contains no usable templates or modules.")));
                 continue;
             }
 
             if (!registryIds.Add(registryId))
             {
-                failedSourceIssues.Add((
-                    source,
-                    Error(
+                var duplicateIssue = options.DuplicateSourcePolicy ==
+                    RegistryDuplicateSourcePolicy.RejectDuplicates
+                    ? Error(
                         "registry.id_duplicate",
-                        $"Registry ID '{registryId}' is configured more than once.")));
+                        $"Registry ID '{registryId}' is configured more than once.")
+                    : Warning(
+                        "registry.id_duplicate_first_wins",
+                        $"Registry ID '{registryId}' is configured more than once. " +
+                        $"The earlier configured source has priority and '{source.Name}' was ignored.");
+                failedSourceIssues.Add((source, duplicateIssue));
                 continue;
             }
 
             foreach (var template in sourceTemplates)
             {
-                var key = $"{template.RegistryId}\n{template.Entry.TemplateId}";
+                var key =
+                    $"{template.RegistryId}\n{template.Entry.TemplateId}\n{template.Entry.Version}";
                 if (!qualifiedTemplates.Add(key))
                 {
                     issues.Add(Warning(
                         "registry.qualified_template_duplicate",
-                        $"Duplicate qualified template '{template.RegistryId}:{template.Entry.TemplateId}' was ignored."));
+                        $"Duplicate qualified template '{template.RegistryId}:{template.Entry.TemplateId}@{template.Entry.Version}' was ignored."));
                     continue;
                 }
 
                 templates.Add(template);
             }
+
+            foreach (var module in sourceModules)
+            {
+                var key =
+                    $"{module.RegistryId}\n{module.Entry.ModuleId}\n{module.Entry.Version}";
+                if (!qualifiedModules.Add(key))
+                {
+                    issues.Add(Warning(
+                        "registry.qualified_module_duplicate",
+                        $"Duplicate qualified module '{module.RegistryId}:{module.Entry.ModuleId}@{module.Entry.Version}' was ignored."));
+                    continue;
+                }
+
+                modules.Add(module);
+            }
         }
 
-        if (templates.Count == 0)
+        if (templates.Count == 0 && modules.Count == 0)
         {
             issues.AddRange(failedSourceIssues.Select(item =>
                 item.Issue with
@@ -127,7 +155,7 @@ public sealed class RegistryCatalogService
             {
                 issues.Add(Error(
                     "registry.catalog_empty",
-                    "No usable templates were loaded from the configured registries."));
+                    "No usable templates or modules were loaded from the configured registries."));
             }
 
             return new OperationResult<ResolvedRegistryCatalog>(null, issues);
@@ -139,12 +167,30 @@ public sealed class RegistryCatalogService
                 item.Issue.Code,
                 $"Registry '{item.Source.Name}' was skipped: {item.Issue.Message}")));
 
+        var versionSelection = RegistryVersionSelector.Select(
+            templates,
+            options.VersionPreference,
+            options.VersionPins);
+        issues.AddRange(versionSelection.Issues);
+        var moduleVersionSelection = RegistryVersionSelector.SelectModules(
+            modules,
+            options.VersionPreference,
+            options.VersionPins);
+        issues.AddRange(moduleVersionSelection.Issues);
         return new OperationResult<ResolvedRegistryCatalog>(
             new ResolvedRegistryCatalog(
-                templates
+                versionSelection.Value!.Selections
+                    .Select(selection => selection.Selected)
                     .OrderBy(template => template.RegistryId, StringComparer.Ordinal)
                     .ThenBy(template => template.Entry.TemplateId, StringComparer.Ordinal)
-                    .ToImmutableArray()),
+                    .ToImmutableArray(),
+                versionSelection.Value.Selections,
+                moduleVersionSelection.Value!.Selections
+                    .Select(selection => selection.Selected)
+                    .OrderBy(module => module.RegistryId, StringComparer.Ordinal)
+                    .ThenBy(module => module.Entry.ModuleId, StringComparer.Ordinal)
+                    .ToImmutableArray(),
+                moduleVersionSelection.Value.Selections),
             issues);
     }
 
@@ -160,6 +206,7 @@ public sealed class RegistryCatalogService
         }
 
         var templates = ImmutableArray.CreateBuilder<RegistryTemplatePackage>();
+        var modules = ImmutableArray.CreateBuilder<RegistryModulePackage>();
         var issues = new List<ValidationIssue>(registry.Issues);
         foreach (var entry in registry.Value!.Templates)
         {
@@ -213,17 +260,85 @@ public sealed class RegistryCatalogService
             templates.Add(resolved.Value!);
         }
 
-        if (templates.Count == 0)
+        foreach (var entry in registry.Value.Modules)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var packagePath = LocalRegistryLoader.ResolvePackagePath(
+                registry.Value,
+                entry);
+            if (!packagePath.IsSuccess)
+            {
+                issues.AddRange(ToWarnings(
+                    packagePath.Issues,
+                    "Module",
+                    entry.ModuleId));
+                continue;
+            }
+
+            var verified = await PackageIntegrity.VerifyAsync(
+                packagePath.Value!,
+                entry,
+                cancellationToken).ConfigureAwait(false);
+            if (!verified.IsSuccess)
+            {
+                issues.AddRange(ToWarnings(
+                    verified.Issues,
+                    "Module",
+                    entry.ModuleId));
+                continue;
+            }
+
+            var packageRoot = packagePath.Value!;
+            if (File.Exists(packageRoot))
+            {
+                var extracted = await EnsureExtractedAsync(
+                    packageRoot,
+                    cacheRoot,
+                    registry.Value.RegistryId,
+                    entry,
+                    cancellationToken).ConfigureAwait(false);
+                if (!extracted.IsSuccess)
+                {
+                    issues.AddRange(ToWarnings(
+                        extracted.Issues,
+                        "Module",
+                        entry.ModuleId));
+                    continue;
+                }
+
+                packageRoot = extracted.Value!;
+            }
+
+            var resolved = ResolveModulePackage(
+                registry.Value.RegistryId,
+                registry.Value.DisplayName,
+                entry,
+                packageRoot);
+            if (!resolved.IsSuccess)
+            {
+                issues.AddRange(ToWarnings(
+                    resolved.Issues,
+                    "Module",
+                    entry.ModuleId));
+                continue;
+            }
+
+            modules.Add(resolved.Value!);
+        }
+
+        if (templates.Count == 0 && modules.Count == 0)
         {
             return new OperationResult<ResolvedRegistryCatalog>(
                 null,
                 issues.Append(Error(
                     "registry.source_empty",
-                    $"Local registry '{source.Name}' contains no usable templates.")));
+                    $"Local registry '{source.Name}' contains no usable templates or modules.")));
         }
 
         return new OperationResult<ResolvedRegistryCatalog>(
-            new ResolvedRegistryCatalog(templates.ToImmutable()),
+            new ResolvedRegistryCatalog(
+                templates.ToImmutable(),
+                Modules: modules.ToImmutable()),
             issues);
     }
 
@@ -253,6 +368,7 @@ public sealed class RegistryCatalogService
         }
 
         var templates = ImmutableArray.CreateBuilder<RegistryTemplatePackage>();
+        var modules = ImmutableArray.CreateBuilder<RegistryModulePackage>();
         var issues = new List<ValidationIssue>(indexResult.Issues);
         foreach (var entry in indexResult.Value!.Index.Templates)
         {
@@ -297,17 +413,71 @@ public sealed class RegistryCatalogService
             templates.Add(resolved.Value!);
         }
 
-        if (templates.Count == 0)
+        foreach (var entry in indexResult.Value.Index.Modules)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var archive = await EnsureRemoteArchiveAsync(
+                indexUri,
+                indexResult.Value.Index.RegistryId,
+                entry,
+                cacheRoot,
+                offline,
+                cancellationToken).ConfigureAwait(false);
+            if (!archive.IsSuccess)
+            {
+                issues.AddRange(ToWarnings(
+                    archive.Issues,
+                    "Module",
+                    entry.ModuleId));
+                continue;
+            }
+
+            issues.AddRange(archive.Issues);
+            var extracted = await EnsureExtractedAsync(
+                archive.Value!,
+                cacheRoot,
+                indexResult.Value.Index.RegistryId,
+                entry,
+                cancellationToken).ConfigureAwait(false);
+            if (!extracted.IsSuccess)
+            {
+                issues.AddRange(ToWarnings(
+                    extracted.Issues,
+                    "Module",
+                    entry.ModuleId));
+                continue;
+            }
+
+            var resolved = ResolveModulePackage(
+                indexResult.Value.Index.RegistryId,
+                indexResult.Value.Index.DisplayName,
+                entry,
+                extracted.Value!);
+            if (!resolved.IsSuccess)
+            {
+                issues.AddRange(ToWarnings(
+                    resolved.Issues,
+                    "Module",
+                    entry.ModuleId));
+                continue;
+            }
+
+            modules.Add(resolved.Value!);
+        }
+
+        if (templates.Count == 0 && modules.Count == 0)
         {
             return new OperationResult<ResolvedRegistryCatalog>(
                 null,
                 issues.Append(Error(
                     "registry.source_empty",
-                    $"Remote registry '{source.Name}' contains no usable cached templates.")));
+                    $"Remote registry '{source.Name}' contains no usable cached templates or modules.")));
         }
 
         return new OperationResult<ResolvedRegistryCatalog>(
-            new ResolvedRegistryCatalog(templates.ToImmutable()),
+            new ResolvedRegistryCatalog(
+                templates.ToImmutable(),
+                Modules: modules.ToImmutable()),
             issues);
     }
 
@@ -662,7 +832,7 @@ public sealed class RegistryCatalogService
     private async Task<OperationResult<string>> EnsureRemoteArchiveAsync(
         Uri indexUri,
         string registryId,
-        RegistryTemplateEntry entry,
+        IRegistryPackageEntry entry,
         string cacheRoot,
         bool offline,
         CancellationToken cancellationToken)
@@ -690,7 +860,7 @@ public sealed class RegistryCatalogService
         {
             return Failure<string>(
                 "registry.offline_package_missing",
-                $"Package '{entry.TemplateId}' is not available in the offline cache.");
+                $"Package '{entry.ArtifactId}' is not available in the offline cache.");
         }
 
         var packageUri = new Uri(indexUri, entry.PackagePath);
@@ -698,7 +868,7 @@ public sealed class RegistryCatalogService
         {
             return Failure<string>(
                 "registry.package_url_invalid",
-                $"Package '{entry.TemplateId}' must resolve to an HTTPS URL.");
+                $"Package '{entry.ArtifactId}' must resolve to an HTTPS URL.");
         }
 
         return await DownloadPackageAsync(
@@ -711,7 +881,7 @@ public sealed class RegistryCatalogService
     private async Task<OperationResult<string>> DownloadPackageAsync(
         Uri packageUri,
         string destination,
-        RegistryTemplateEntry entry,
+        IRegistryPackageEntry entry,
         CancellationToken cancellationToken)
     {
         var temporaryPath = $"{destination}.{Guid.NewGuid():N}.download";
@@ -727,7 +897,7 @@ public sealed class RegistryCatalogService
             {
                 return Failure<string>(
                     "registry.package_http_status",
-                    $"Package '{entry.TemplateId}' returned HTTP {(int)response.StatusCode}.");
+                    $"Package '{entry.ArtifactId}' returned HTTP {(int)response.StatusCode}.");
             }
 
             if (entry.PackageSizeBytes > MaximumPackageBytes ||
@@ -735,7 +905,7 @@ public sealed class RegistryCatalogService
             {
                 return Failure<string>(
                     "registry.package_too_large",
-                    $"Package '{entry.TemplateId}' exceeds the {MaximumPackageBytes} byte limit.");
+                    $"Package '{entry.ArtifactId}' exceeds the {MaximumPackageBytes} byte limit.");
             }
 
             await using var input = await response.Content.ReadAsStreamAsync(
@@ -764,7 +934,7 @@ public sealed class RegistryCatalogService
                 {
                     return Failure<string>(
                         "registry.package_size_mismatch",
-                        $"Package '{entry.TemplateId}' exceeded its declared size.");
+                        $"Package '{entry.ArtifactId}' exceeded its declared size.");
                 }
 
                 await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken)
@@ -789,7 +959,7 @@ public sealed class RegistryCatalogService
                     new ValidationIssue(
                         ValidationSeverity.Information,
                         "registry.package_cached",
-                        $"Cached package '{entry.TemplateId}' for offline use."),
+                        $"Cached package '{entry.ArtifactId}' for offline use."),
                 ]);
         }
         catch (OperationCanceledException)
@@ -803,7 +973,7 @@ public sealed class RegistryCatalogService
         {
             return Failure<string>(
                 "registry.package_download_failed",
-                $"Package '{entry.TemplateId}' could not be downloaded: {exception.Message}");
+                $"Package '{entry.ArtifactId}' could not be downloaded: {exception.Message}");
         }
         finally
         {
@@ -818,7 +988,7 @@ public sealed class RegistryCatalogService
         string archivePath,
         string cacheRoot,
         string registryId,
-        RegistryTemplateEntry entry,
+        IRegistryPackageEntry entry,
         CancellationToken cancellationToken)
     {
         var cacheKey = PackageCacheKey(registryId, entry);
@@ -907,6 +1077,40 @@ public sealed class RegistryCatalogService
             package.Issues);
     }
 
+    private static OperationResult<RegistryModulePackage> ResolveModulePackage(
+        string registryId,
+        string registryDisplayName,
+        RegistryModuleEntry entry,
+        string packageRoot)
+    {
+        var package = ModulePackageLoader.Load(packageRoot);
+        if (!package.IsSuccess)
+        {
+            return new OperationResult<RegistryModulePackage>(
+                null,
+                package.Issues);
+        }
+
+        var manifest = package.Value!.Manifest;
+        if (!string.Equals(manifest.Id, entry.ModuleId, StringComparison.Ordinal) ||
+            !string.Equals(manifest.Version, entry.Version, StringComparison.Ordinal) ||
+            !string.Equals(manifest.Language, entry.Language, StringComparison.Ordinal))
+        {
+            return Failure<RegistryModulePackage>(
+                "registry.module_identity_mismatch",
+                $"Registry module entry '{entry.ModuleId}' does not match its module manifest.");
+        }
+
+        var qualifiedPackage = package.Value with { RegistryId = registryId };
+        return new OperationResult<RegistryModulePackage>(
+            new RegistryModulePackage(
+                registryId,
+                registryDisplayName,
+                entry,
+                qualifiedPackage),
+            package.Issues);
+    }
+
     private static async Task WriteFileAtomicallyAsync(
         string path,
         byte[] bytes,
@@ -967,20 +1171,26 @@ public sealed class RegistryCatalogService
     private static IEnumerable<ValidationIssue> ToWarnings(
         IEnumerable<ValidationIssue> issues,
         string templateId) =>
+        ToWarnings(issues, "Template", templateId);
+
+    private static IEnumerable<ValidationIssue> ToWarnings(
+        IEnumerable<ValidationIssue> issues,
+        string artifactKind,
+        string artifactId) =>
         issues.Select(issue => new ValidationIssue(
             issue.Severity == ValidationSeverity.Information
                 ? ValidationSeverity.Information
                 : ValidationSeverity.Warning,
             issue.Code,
-            $"Template '{templateId}' was skipped: {issue.Message}",
+            $"{artifactKind} '{artifactId}' was skipped: {issue.Message}",
             issue.ParameterId,
             issue.Path));
 
     private static string PackageCacheKey(
         string registryId,
-        RegistryTemplateEntry entry) =>
+        IRegistryPackageEntry entry) =>
         HashText(
-            $"{registryId}\n{entry.TemplateId}\n{entry.Version}\n{entry.PackageSha256}");
+            $"{registryId}\n{entry.ArtifactId}\n{entry.Version}\n{entry.PackageSha256}");
 
     private static string HashText(string value) =>
         Convert.ToHexStringLower(SHA256.HashData(StrictUtf8.GetBytes(value)));

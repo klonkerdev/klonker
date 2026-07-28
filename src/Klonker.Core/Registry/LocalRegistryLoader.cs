@@ -60,6 +60,24 @@ public static class LocalRegistryLoader
             }
         }
 
+        foreach (var entry in indexResult.Value.Modules)
+        {
+            var packageResolution = SafePath.ResolveUnderRoot(
+                registryRoot,
+                entry.PackagePath);
+            issues.AddRange(packageResolution.Issues);
+            if (packageResolution.IsSuccess &&
+                !Directory.Exists(packageResolution.Value) &&
+                !File.Exists(packageResolution.Value))
+            {
+                issues.Add(new ValidationIssue(
+                    ValidationSeverity.Error,
+                    "registry.package_not_found",
+                    $"Module package '{entry.PackagePath}' does not exist.",
+                    Path: entry.PackagePath));
+            }
+        }
+
         if (issues.Any(issue => issue.Severity == ValidationSeverity.Error))
         {
             return new OperationResult<LocalRegistryCatalog>(null, issues);
@@ -71,13 +89,23 @@ public static class LocalRegistryLoader
                 indexResult.Value.RegistryId,
                 indexResult.Value.DisplayName,
                 registryRoot,
-                indexResult.Value.Templates),
+                indexResult.Value.Templates,
+                indexResult.Value.Modules),
             issues);
     }
 
     public static OperationResult<string> ResolvePackagePath(
         LocalRegistryCatalog registry,
         RegistryTemplateEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(registry);
+        ArgumentNullException.ThrowIfNull(entry);
+        return SafePath.ResolveUnderRoot(registry.RootPath, entry.PackagePath);
+    }
+
+    public static OperationResult<string> ResolvePackagePath(
+        LocalRegistryCatalog registry,
+        RegistryModuleEntry entry)
     {
         ArgumentNullException.ThrowIfNull(registry);
         ArgumentNullException.ThrowIfNull(entry);

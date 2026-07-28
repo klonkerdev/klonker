@@ -7,8 +7,17 @@ namespace Klonker.Desktop.Views;
 public partial class MainWindow : Window
 {
     private SettingsWindow? settingsWindow;
+    private TemplateWizardWindow? templateWizardWindow;
+    private RegistryWizardWindow? registryWizardWindow;
+    private AboutWindow? aboutWindow;
 
     public Func<SettingsWindow>? SettingsWindowFactory { get; set; }
+
+    public Func<TemplateWizardWindow>? TemplateWizardWindowFactory { get; set; }
+
+    public Func<RegistryWizardWindow>? RegistryWizardWindowFactory { get; set; }
+
+    public Func<AboutWindow>? AboutWindowFactory { get; set; }
 
     public MainWindow()
     {
@@ -66,6 +75,84 @@ public partial class MainWindow : Window
         finally
         {
             settingsWindow = null;
+        }
+    }
+
+    private async void OnTemplateWizardClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (templateWizardWindow is not null)
+        {
+            templateWizardWindow.Activate();
+            return;
+        }
+
+        templateWizardWindow = TemplateWizardWindowFactory?.Invoke();
+        if (templateWizardWindow is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await templateWizardWindow.ShowDialog(this);
+        }
+        finally
+        {
+            templateWizardWindow = null;
+        }
+    }
+
+    private async void OnRegistryWizardClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (registryWizardWindow is not null)
+        {
+            registryWizardWindow.Activate();
+            return;
+        }
+
+        registryWizardWindow = RegistryWizardWindowFactory?.Invoke();
+        if (registryWizardWindow is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await registryWizardWindow.ShowDialog(this);
+        }
+        finally
+        {
+            registryWizardWindow = null;
+        }
+    }
+
+    private async void OnAboutClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (aboutWindow is not null)
+        {
+            aboutWindow.Activate();
+            return;
+        }
+
+        aboutWindow = AboutWindowFactory?.Invoke();
+        if (aboutWindow is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await aboutWindow.ShowDialog(this);
+        }
+        finally
+        {
+            aboutWindow = null;
         }
     }
 

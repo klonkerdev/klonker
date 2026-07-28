@@ -1,0 +1,433 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Klonker.Desktop.ViewModels"
+        x:Class="Klonker.Desktop.Views.RegistryWizardWindow"
+        x:DataType="vm:RegistryWizardViewModel"
+        Width="1140"
+        Height="760"
+        MinWidth="980"
+        MinHeight="680"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Title="Klonker registry workspace">
+
+  <Window.Styles>
+    <Style Selector="Border.registryChoice">
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="Border.registryChoice:pointerover">
+      <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.issue.error">
+      <Setter Property="Background" Value="{StaticResource ErrorSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource ErrorBrush}" />
+    </Style>
+    <Style Selector="Border.issue.warning">
+      <Setter Property="Background" Value="{StaticResource WarningSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="64,*"
+        Background="{StaticResource BackgroundBrush}">
+    <Border Padding="20,0"
+            Background="{StaticResource ChromeBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="13">
+        <Border Width="38"
+                Height="38"
+                VerticalAlignment="Center"
+                Background="{StaticResource AccentMutedBrush}"
+                CornerRadius="8">
+          <PathIcon Width="20"
+                    Height="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Data="{StaticResource IconPackage}"
+                    Foreground="{StaticResource AccentBrush}" />
+        </Border>
+        <StackPanel Grid.Column="1"
+                    VerticalAlignment="Center">
+          <TextBlock FontSize="17"
+                     FontWeight="SemiBold"
+                     Text="Registry workspace" />
+          <TextBlock Classes="muted"
+                     FontSize="11"
+                     Text="Create, validate, build, sign, and locally test template registries." />
+        </StackPanel>
+        <Button Grid.Column="2"
+                AutomationProperties.Name="Close registry wizard"
+                Classes="icon"
+                Click="OnCloseClicked">
+          <PathIcon Width="14"
+                    Height="14"
+                    Data="{StaticResource IconClose}" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1"
+          ColumnDefinitions="*,270">
+      <Grid Margin="22"
+            RowDefinitions="*,Auto"
+            RowSpacing="13">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="14">
+            <StackPanel IsVisible="{Binding IsWelcome}"
+                        Spacing="14">
+              <TextBlock Classes="title"
+                         FontSize="23"
+                         Text="What are you working on?" />
+              <TextBlock Classes="secondary"
+                         Text="Every workflow validates source layout without executing template code or external tools." />
+              <Grid ColumnDefinitions="*,*,*"
+                    ColumnSpacing="13">
+                <Border Classes="registryChoice"
+                        Padding="17">
+                  <StackPanel Spacing="10">
+                    <TextBlock FontSize="17"
+                               FontWeight="SemiBold"
+                               Text="Development registry" />
+                    <TextBlock Classes="secondary"
+                               TextWrapping="Wrap"
+                               Text="Create a local workspace, optionally import a template package, build it, and register it in Klonker for fast catalog testing." />
+                    <Button Classes="primary"
+                            Command="{Binding ChooseDevelopmentCommand}"
+                            Content="Create for development" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1"
+                        Classes="registryChoice"
+                        Padding="17">
+                  <StackPanel Spacing="10">
+                    <TextBlock FontSize="17"
+                               FontWeight="SemiBold"
+                               Text="Production registry" />
+                    <TextBlock Classes="secondary"
+                               TextWrapping="Wrap"
+                               Text="Scaffold publisher metadata, generate a 3072-bit signing key, keep the private key outside the repo, and build detached signatures." />
+                    <Button Classes="ghost"
+                            Command="{Binding ChooseProductionCommand}"
+                            Content="Create for production" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="2"
+                        Classes="registryChoice"
+                        Padding="17">
+                  <StackPanel Spacing="10">
+                    <TextBlock FontSize="17"
+                               FontWeight="SemiBold"
+                               Text="Existing source" />
+                    <TextBlock Classes="secondary"
+                               TextWrapping="Wrap"
+                               Text="Open registry.toml plus templates, validate every discovered package and variant, rebuild dist transactionally, and optionally register it locally." />
+                    <Button Classes="ghost"
+                            Command="{Binding ChooseExistingCommand}"
+                            Content="Open existing registry" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsConfigure}"
+                        Spacing="13">
+              <TextBlock Classes="title"
+                         FontSize="22"
+                         Text="Configure workspace" />
+              <Border Classes="panel"
+                      Padding="15">
+                <StackPanel Spacing="9">
+                  <TextBlock FontWeight="SemiBold"
+                             Text="Registry source folder" />
+                  <TextBlock Classes="secondary"
+                             Text="Choose an existing source folder, or a new/empty folder when creating a workspace." />
+                  <Grid ColumnDefinitions="*,Auto"
+                        ColumnSpacing="8">
+                    <TextBox Classes="field"
+                             Text="{Binding WorkspacePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="D:\registries\my-registry" />
+                    <Button Grid.Column="1"
+                            Classes="ghost"
+                            Command="{Binding BrowseWorkspaceCommand}"
+                            Content="Browse…" />
+                  </Grid>
+                  <TextBlock Margin="0,5,0,0"
+                             FontWeight="SemiBold"
+                             Text="Build output" />
+                  <TextBox Classes="field"
+                           Text="{Binding OutputPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                           PlaceholderText="D:\registries\my-registry\dist" />
+                </StackPanel>
+              </Border>
+
+              <Border Classes="panel"
+                      Padding="15"
+                      IsVisible="{Binding IsNewWorkspace}">
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="10"
+                      RowDefinitions="Auto,Auto">
+                  <StackPanel>
+                    <TextBlock Classes="eyebrow"
+                               Text="REGISTRY ID" />
+                    <TextBox Margin="0,5,0,0"
+                             Classes="field"
+                             Text="{Binding RegistryId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock Classes="eyebrow"
+                               Text="DISPLAY NAME" />
+                    <TextBox Margin="0,5,0,0"
+                             Classes="field"
+                             Text="{Binding DisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1"
+                              Grid.ColumnSpan="2"
+                              Margin="0,12,0,0"
+                              Spacing="7">
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Optional first template package" />
+                    <TextBlock Classes="secondary"
+                               Text="Choose output from the Template wizard (package.toml plus variants). Klonker imports it under the correct namespace/package folders." />
+                    <Grid ColumnDefinitions="*,Auto"
+                          ColumnSpacing="8">
+                      <TextBox Classes="field"
+                               Text="{Binding InitialTemplatePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               PlaceholderText="Leave empty to create only the workspace" />
+                      <Button Grid.Column="1"
+                              Classes="ghost"
+                              Command="{Binding BrowseInitialTemplateCommand}"
+                              Content="Browse…" />
+                    </Grid>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <Border Classes="panel"
+                      Padding="15"
+                      IsVisible="{Binding ShowsSigning}">
+                <StackPanel Spacing="9">
+                  <TextBlock FontSize="15"
+                             FontWeight="SemiBold"
+                             Text="Publisher signing" />
+                  <TextBlock Classes="secondary"
+                             TextWrapping="Wrap"
+                             Text="Production creates a new PKCS#8 private key. Existing registries may select a private key to emit registry.json.sig.json; leave it empty for an unsigned development build." />
+                  <Grid ColumnDefinitions="*,*"
+                        ColumnSpacing="10"
+                        IsVisible="{Binding IsProduction}">
+                    <StackPanel>
+                      <TextBlock Classes="eyebrow"
+                                 Text="PUBLISHER ID" />
+                      <TextBox Margin="0,5,0,0"
+                               Classes="field"
+                               Text="{Binding PublisherId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Classes="eyebrow"
+                                 Text="KEY ID" />
+                      <TextBox Margin="0,5,0,0"
+                               Classes="field"
+                               Text="{Binding SigningKeyId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock Classes="eyebrow"
+                             Text="PRIVATE KEY (OUTSIDE WORKSPACE)" />
+                  <Grid ColumnDefinitions="*,Auto"
+                        ColumnSpacing="8">
+                    <TextBox Classes="field"
+                             Text="{Binding PrivateKeyPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="D:\secure\registry-signing-key.pem" />
+                    <Button Grid.Column="1"
+                            Classes="ghost"
+                            Command="{Binding BrowsePrivateKeyCommand}"
+                            Content="Browse…" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <CheckBox IsChecked="{Binding RegisterLocally, Mode=TwoWay}"
+                        IsVisible="{Binding !IsProduction}"
+                        Content="Register the built registry as an enabled local Klonker source" />
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsReview}"
+                        Spacing="13">
+              <TextBlock Classes="title"
+                         FontSize="22"
+                         Text="Review and confirm" />
+              <Border Classes="panel"
+                      Padding="15">
+                <TextBlock TextWrapping="Wrap"
+                           Text="{Binding ReviewSummary}" />
+              </Border>
+              <Border Classes="panel"
+                      Padding="13"
+                      IsVisible="{Binding HasPreview}">
+                <StackPanel Spacing="8">
+                  <TextBlock FontWeight="SemiBold"
+                             Text="Workspace preview" />
+                  <TextBox Classes="code"
+                           AcceptsReturn="True"
+                           IsReadOnly="True"
+                           MaxHeight="260"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                           Text="{Binding Preview.DirectoryTree}" />
+                </StackPanel>
+              </Border>
+              <Border Padding="12"
+                      Background="{StaticResource WarningSurfaceBrush}"
+                      BorderBrush="{StaticResource WarningBrush}"
+                      BorderThickness="1"
+                      CornerRadius="7"
+                      IsVisible="{Binding IsProduction}">
+                <TextBlock TextWrapping="Wrap"
+                           Text="The private key is written only to the external path shown above and is never added to the workspace. Back it up securely and add its PEM contents to your CI secret manager." />
+              </Border>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding IsComplete}"
+                        Spacing="13">
+              <Border Classes="successSurface"
+                      Padding="18">
+                <StackPanel Spacing="9">
+                  <PathIcon Width="28"
+                            Height="28"
+                            HorizontalAlignment="Left"
+                            Data="{StaticResource IconCheck}"
+                            Foreground="{StaticResource AccentBrush}" />
+                  <TextBlock FontSize="20"
+                             FontWeight="SemiBold"
+                             Text="Registry workflow complete" />
+                  <TextBlock TextWrapping="Wrap"
+                             Text="{Binding StatusMessage}" />
+                  <TextBlock Classes="secondary"
+                             TextWrapping="Wrap"
+                             IsVisible="{Binding HasBuildResult}"
+                             Text="{Binding BuildSummary}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding Issues}"
+                          IsVisible="{Binding HasIssues}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TemplateInspectionIssueViewModel">
+                  <Border Classes="issue"
+                          Classes.error="{Binding IsError}"
+                          Classes.warning="{Binding IsWarning}"
+                          Margin="0,0,0,7"
+                          Padding="10"
+                          BorderThickness="1"
+                          CornerRadius="6">
+                    <StackPanel>
+                      <TextBlock FontWeight="SemiBold"
+                                 Text="{Binding Severity}" />
+                      <TextBlock Margin="0,3,0,0"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Message}" />
+                      <TextBlock Margin="0,3,0,0"
+                                 Classes="muted"
+                                 FontFamily="Cascadia Mono,Consolas"
+                                 FontSize="10"
+                                 IsVisible="{Binding HasPath}"
+                                 Text="{Binding Path}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,Auto,Auto"
+              ColumnSpacing="8">
+          <TextBlock Classes="muted"
+                     VerticalAlignment="Center"
+                     Text="{Binding StatusMessage}" />
+          <Button Grid.Column="1"
+                  Classes="ghost"
+                  Command="{Binding BackCommand}"
+                  Content="Back"
+                  IsVisible="{Binding CanGoBack}" />
+          <Button Grid.Column="2"
+                  Classes="primary"
+                  Command="{Binding NextCommand}"
+                  Content="Continue"
+                  IsVisible="{Binding IsConfigure}" />
+          <Button Grid.Column="2"
+                  Classes="primary"
+                  Command="{Binding ExecuteCommand}"
+                  Content="{Binding PrimaryActionText}"
+                  IsVisible="{Binding IsReview}" />
+          <Button Grid.Column="2"
+                  Classes="primary"
+                  Click="OnCloseClicked"
+                  Content="Done"
+                  IsVisible="{Binding IsComplete}" />
+        </Grid>
+      </Grid>
+
+      <Border Grid.Column="1"
+              Padding="16"
+              Background="{StaticResource SurfaceRaisedBrush}"
+              BorderBrush="{StaticResource BorderBrush}"
+              BorderThickness="1,0,0,0">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="eyebrow"
+                     Text="REGISTRY JOURNEY" />
+          <Border Classes="panel"
+                  Padding="12">
+            <StackPanel Spacing="5">
+              <TextBlock FontWeight="SemiBold"
+                         Text="1  Choose workflow" />
+              <TextBlock Classes="muted"
+                         FontSize="10"
+                         Text="Development, production, or existing source." />
+            </StackPanel>
+          </Border>
+          <Border Classes="panel"
+                  Padding="12">
+            <StackPanel Spacing="5">
+              <TextBlock FontWeight="SemiBold"
+                         Text="2  Configure" />
+              <TextBlock Classes="muted"
+                         FontSize="10"
+                         Text="Paths, identity, first package, and signing." />
+            </StackPanel>
+          </Border>
+          <Border Classes="panel"
+                  Padding="12">
+            <StackPanel Spacing="5">
+              <TextBlock FontWeight="SemiBold"
+                         Text="3  Review" />
+              <TextBlock Classes="muted"
+                         FontSize="10"
+                         Text="Preview writes and confirm destructive output replacement." />
+            </StackPanel>
+          </Border>
+          <Border Classes="panel"
+                  Padding="12">
+            <StackPanel Spacing="5">
+              <TextBlock FontWeight="SemiBold"
+                         Text="4  Test or publish" />
+              <TextBlock Classes="muted"
+                         FontSize="10"
+                         Text="Local catalog source or signed dist artifact." />
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="secondary"
+                     TextWrapping="Wrap"
+                     Text="Builds discover every package.toml and variant.toml generically. Adding a template never requires a new test case or hardcoded registry entry." />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

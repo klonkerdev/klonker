@@ -57,7 +57,7 @@ public static class PackageIntegrity
 
     public static async Task<OperationResult<PackageArtifactInfo>> VerifyAsync(
         string artifactPath,
-        RegistryTemplateEntry entry,
+        IRegistryPackageEntry entry,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -78,7 +78,7 @@ public static class PackageIntegrity
             issues.Add(new ValidationIssue(
                 ValidationSeverity.Error,
                 "registry.package_checksum_mismatch",
-                $"Package '{entry.TemplateId}' does not match its registry SHA-256.",
+                $"Package '{entry.ArtifactId}' does not match its registry SHA-256.",
                 Path: entry.PackagePath));
         }
 
@@ -87,7 +87,7 @@ public static class PackageIntegrity
             issues.Add(new ValidationIssue(
                 ValidationSeverity.Error,
                 "registry.package_size_mismatch",
-                $"Package '{entry.TemplateId}' does not match its registry size.",
+                $"Package '{entry.ArtifactId}' does not match its registry size.",
                 Path: entry.PackagePath));
         }
 

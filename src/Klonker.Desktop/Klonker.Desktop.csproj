@@ -2,12 +2,16 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <Version>0.1.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="Assets\**"
+                      Exclude="Assets\template-authoring-options.json" />
+    <EmbeddedResource Include="Assets\template-authoring-options.json"
+                      LogicalName="Klonker.Desktop.Assets.template-authoring-options.json" />
   </ItemGroup>
 
   <ItemGroup>

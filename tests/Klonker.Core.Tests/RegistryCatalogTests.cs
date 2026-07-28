@@ -179,6 +179,9 @@ public sealed class RegistryCatalogTests
             $"klonker.samples.local:{sampleManifest.Id}@{sampleManifest.Version}",
             template.QualifiedId);
         Assert.Equal(template.RegistryId, template.Package.RegistryId);
+        var module = Assert.Single(result.Value.Modules);
+        Assert.Equal("std.cpp-cmake-submodule", module.Entry.ModuleId);
+        Assert.Equal(template.RegistryId, module.Package.RegistryId);
     }
 
     [Fact]

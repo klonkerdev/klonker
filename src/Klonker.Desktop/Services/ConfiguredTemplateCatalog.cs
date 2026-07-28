@@ -7,13 +7,16 @@ public sealed class ConfiguredTemplateCatalog : ITemplateCatalog
 {
     private readonly RegistryConfigurationStore configurationStore;
     private readonly RegistryCatalogService catalogService;
+    private readonly AppSettingsStore? appSettingsStore;
 
     public ConfiguredTemplateCatalog(
         RegistryConfigurationStore configurationStore,
-        RegistryCatalogService catalogService)
+        RegistryCatalogService catalogService,
+        AppSettingsStore? appSettingsStore = null)
     {
         this.configurationStore = configurationStore;
         this.catalogService = catalogService;
+        this.appSettingsStore = appSettingsStore;
     }
 
     public async Task<OperationResult<TemplateCatalogSnapshot>> LoadAsync(
@@ -27,11 +30,20 @@ public sealed class ConfiguredTemplateCatalog : ITemplateCatalog
                 configuration.Issues);
         }
 
+        var appSettings = appSettingsStore?.Load();
+        var catalogOptions = appSettings?.IsSuccess == true
+            ? new RegistryCatalogOptions(
+                configuration.Value!.CacheRoot,
+                configuration.Value.Offline,
+                appSettings.Value!.RegistryVersionPreference,
+                appSettings.Value.RegistryVersionPins,
+                appSettings.Value.RegistryDuplicateSourcePolicy)
+            : new RegistryCatalogOptions(
+                configuration.Value!.CacheRoot,
+                configuration.Value.Offline);
         var catalog = await catalogService.LoadAsync(
             configuration.Value!.Sources,
-            new RegistryCatalogOptions(
-                configuration.Value.CacheRoot,
-                configuration.Value.Offline),
+            catalogOptions,
             cancellationToken).ConfigureAwait(false);
         if (!catalog.IsSuccess)
         {
@@ -45,7 +57,12 @@ public sealed class ConfiguredTemplateCatalog : ITemplateCatalog
                 catalog.Value!.Templates,
                 configuration.Value.ConfigurationPath,
                 configuration.Value.CacheRoot,
-                configuration.Value.Offline),
-            configuration.Issues.Concat(catalog.Issues));
+                configuration.Value.Offline,
+                catalog.Value.Modules,
+                catalog.Value.TemplateVersions,
+                catalog.Value.ModuleVersions),
+            configuration.Issues
+                .Concat(appSettings?.Issues ?? [])
+                .Concat(catalog.Issues));
     }
 }

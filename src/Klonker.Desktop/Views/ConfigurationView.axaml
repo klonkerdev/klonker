@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Klonker.Desktop.ViewModels"
+             xmlns:services="using:Klonker.Desktop.Services"
              xmlns:controls="using:Klonker.Desktop.Controls"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -13,6 +14,23 @@
   <Design.DataContext>
     <vm:MainViewModel />
   </Design.DataContext>
+
+  <UserControl.Styles>
+    <Style Selector="Border.prerequisiteCard">
+      <Setter Property="Background" Value="{StaticResource InputBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+    </Style>
+    <Style Selector="Border.prerequisiteCard.found">
+      <Setter Property="Background" Value="{StaticResource SuccessSurfaceBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.prerequisiteResult">
+      <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+    </Style>
+    <Style Selector="Border.prerequisiteResult.found">
+      <Setter Property="Background" Value="{StaticResource AccentMutedBrush}" />
+    </Style>
+  </UserControl.Styles>
 
   <Grid Margin="12"
         RowDefinitions="Auto,*,Auto,Auto"
@@ -129,14 +147,28 @@
                       Background="{StaticResource BorderBrush}" />
 
               <TextBlock FontWeight="SemiBold"
-                         Text="Destination" />
+                         Text="Generation host" />
               <TextBlock Margin="0,3,0,8"
                          Classes="muted"
                          FontSize="12"
                          TextWrapping="Wrap"
-                         Text="Type a new path or choose an existing empty folder." />
-              <Grid ColumnDefinitions="*,Auto"
-                    ColumnSpacing="7">
+                         Text="Generate on Windows, or transfer directly into a running WSL distribution." />
+              <ComboBox AutomationProperties.Name="Generation host"
+                        Classes="field"
+                        ItemsSource="{Binding GenerationHosts}"
+                        SelectedItem="{Binding GenerationHost, Mode=TwoWay}" />
+
+              <StackPanel Margin="0,12,0,0"
+                          IsVisible="{Binding IsWindowsGeneration}">
+                <TextBlock FontWeight="SemiBold"
+                           Text="Windows destination" />
+                <TextBlock Margin="0,3,0,8"
+                           Classes="muted"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Text="Type a new path or choose an existing empty folder." />
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="7">
                 <TextBox AutomationProperties.Name="Project destination"
                          Classes="field"
                          PlaceholderText="D:\projects\MyCliApp"
@@ -152,7 +184,61 @@
                             Height="17"
                             Data="{StaticResource IconBrowse}" />
                 </Button>
-              </Grid>
+                </Grid>
+              </StackPanel>
+
+              <StackPanel Margin="0,12,0,0"
+                          IsVisible="{Binding IsWslGeneration}">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="7">
+                  <ComboBox AutomationProperties.Name="Running WSL distribution"
+                            Classes="field"
+                            ItemsSource="{Binding RunningWslDistributions}"
+                            SelectedItem="{Binding SelectedWslDistribution, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="services:WslDistribution">
+                        <TextBlock Text="{Binding Name}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button Grid.Column="1"
+                          AutomationProperties.Name="Refresh running WSL distributions"
+                          Classes="ghost"
+                          Command="{Binding RefreshWslCommand}"
+                          Content="Refresh" />
+                </Grid>
+                <TextBlock Margin="0,5,0,8"
+                           Classes="muted"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="{Binding WslStatusMessage}" />
+                <TextBlock FontWeight="SemiBold"
+                           Text="Linux destination" />
+                <Grid Margin="0,6,0,0"
+                      ColumnDefinitions="*,Auto"
+                      ColumnSpacing="7">
+                  <TextBox AutomationProperties.Name="Linux project destination"
+                           Classes="field"
+                           PlaceholderText="/home/me/projects/MyCliApp"
+                           Text="{Binding WslDestinationPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  <Button Grid.Column="1"
+                          AutomationProperties.Name="Use WSL home directory"
+                          Classes="ghost"
+                          Command="{Binding UseWslHomeCommand}"
+                          Content="Home" />
+                </Grid>
+                <Border Margin="0,9,0,0"
+                        Padding="9"
+                        Background="{StaticResource InputBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="5">
+                  <TextBlock Classes="muted"
+                             FontSize="10"
+                             TextWrapping="Wrap"
+                             Text="Only distributions already running are listed. Klonker writes through \\wsl.localhost and reads every file back; no template command is executed." />
+                </Border>
+              </StackPanel>
 
               <StackPanel Margin="0,18,0,0"
                           IsVisible="{Binding HasPrerequisites}">
@@ -179,10 +265,10 @@
                 <ItemsControl ItemsSource="{Binding Prerequisites}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:PrerequisiteViewModel">
-                      <Border Margin="0,0,0,7"
+                      <Border Classes="prerequisiteCard"
+                              Classes.found="{Binding ProbeFound}"
+                              Margin="0,0,0,7"
                               Padding="9"
-                              Background="{StaticResource InputBrush}"
-                              BorderBrush="{StaticResource BorderBrush}"
                               BorderThickness="1"
                               CornerRadius="5">
                         <StackPanel>
@@ -203,14 +289,25 @@
                                      FontSize="11"
                                      TextWrapping="Wrap"
                                      Text="{Binding Description}" />
-                          <Border Margin="0,7,0,0"
+                          <Border Classes="prerequisiteResult"
+                                  Classes.found="{Binding ProbeFound}"
+                                  Margin="0,7,0,0"
                                   Padding="7,5"
-                                  Background="{StaticResource SurfaceRaisedBrush}"
                                   CornerRadius="4"
                                   IsVisible="{Binding HasProbeResult}">
-                            <TextBlock FontSize="10"
-                                       TextWrapping="Wrap"
-                                       Text="{Binding ProbeResult.Message}" />
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="6">
+                              <PathIcon Width="13"
+                                        Height="13"
+                                        VerticalAlignment="Center"
+                                        Data="{StaticResource IconCheck}"
+                                        Foreground="{StaticResource AccentBrush}"
+                                        IsVisible="{Binding ProbeFound}" />
+                              <TextBlock VerticalAlignment="Center"
+                                         FontSize="10"
+                                         TextWrapping="Wrap"
+                                         Text="{Binding ProbeResult.Message}" />
+                            </StackPanel>
                           </Border>
                         </StackPanel>
                       </Border>

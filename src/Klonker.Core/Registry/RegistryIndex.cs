@@ -6,4 +6,5 @@ public sealed record RegistryIndex(
     int SchemaVersion,
     string RegistryId,
     string DisplayName,
-    ImmutableArray<RegistryTemplateEntry> Templates);
+    ImmutableArray<RegistryTemplateEntry> Templates,
+    ImmutableArray<RegistryModuleEntry> Modules = default);

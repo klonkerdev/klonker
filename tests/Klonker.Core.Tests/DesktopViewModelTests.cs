@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Avalonia.Media;
 using Klonker.Core.Diagnostics;
 using Klonker.Core.Generation;
 using Klonker.Core.Registry;
@@ -11,6 +12,44 @@ namespace Klonker.Core.Tests;
 
 public sealed class DesktopViewModelTests
 {
+    [Fact]
+    public void About_ReportsApplicationVersionAndAuthorLinks()
+    {
+        var viewModel = new AboutViewModel();
+
+        Assert.Equal("@SleathCobra", AboutViewModel.AuthorName);
+        Assert.Equal(
+            "https://github.com/SleathCobra",
+            AboutViewModel.AuthorUrl);
+        Assert.StartsWith("0.1.0", viewModel.Version);
+        Assert.Equal($"Version {viewModel.Version}", viewModel.DisplayVersion);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.Runtime));
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.Platform));
+    }
+
+    [Fact]
+    public void TagPalette_UpdatesExistingChipsForLightAppearance()
+    {
+        var palette = new TemplateTagPalette();
+        var chip = new TemplateTagViewModel("native", palette);
+        var background = Assert.IsType<SolidColorBrush>(chip.Background);
+        var foreground = Assert.IsType<SolidColorBrush>(chip.Foreground);
+        var darkBackground = background.Color;
+        var darkForeground = foreground.Color;
+
+        palette.Apply(useLightPalette: true);
+
+        Assert.Same(background, chip.Background);
+        Assert.Same(foreground, chip.Foreground);
+        Assert.NotEqual(darkBackground, background.Color);
+        Assert.NotEqual(darkForeground, foreground.Color);
+
+        palette.Apply(useLightPalette: false);
+
+        Assert.Equal(darkBackground, background.Color);
+        Assert.Equal(darkForeground, foreground.Color);
+    }
+
     [Fact]
     public async Task Load_CatalogFailure_CreatesVisibleErrorState()
     {
@@ -455,6 +494,28 @@ public sealed class DesktopViewModelTests
         Assert.All(
             viewModel.Prerequisites,
             item => Assert.Contains("build", item.RequiredFor));
+    }
+
+    [Fact]
+    public void PrerequisiteProbeResult_NotifiesFoundCardState()
+    {
+        var viewModel = new PrerequisiteViewModel(new TemplatePrerequisite(
+            "cmake",
+            "CMake",
+            "CMake must be available.",
+            "build"));
+        var changes = new List<string?>();
+        viewModel.PropertyChanged += (_, eventArgs) =>
+            changes.Add(eventArgs.PropertyName);
+
+        viewModel.ProbeResult = new PrerequisiteProbeResult(
+            PrerequisiteProbeState.Found,
+            "Found CMake.");
+
+        Assert.True(viewModel.ProbeFound);
+        Assert.True(viewModel.HasProbeResult);
+        Assert.Contains(nameof(PrerequisiteViewModel.ProbeFound), changes);
+        Assert.Contains(nameof(PrerequisiteViewModel.HasProbeResult), changes);
     }
 
     [Fact]

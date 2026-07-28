@@ -1,12 +1,15 @@
 using Avalonia.Media.Imaging;
+using Klonker.Desktop.Services;
 
 namespace Klonker.Desktop.ViewModels;
 
 public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
 {
     public PackageListItemViewModel(
-        IEnumerable<TemplateListItemViewModel> variants)
+        IEnumerable<TemplateListItemViewModel> variants,
+        TemplateTagPalette? tagPalette = null)
     {
+        tagPalette ??= new TemplateTagPalette();
         Variants = variants
             .OrderBy(variant => variant.Platform, StringComparer.Ordinal)
             .ThenBy(variant => variant.BuildSystem, StringComparer.Ordinal)
@@ -57,7 +60,7 @@ public sealed class PackageListItemViewModel : ViewModelBase, IDisposable
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToArray();
         TagChips = Tags
-            .Select(tag => new TemplateTagViewModel(tag))
+            .Select(tag => new TemplateTagViewModel(tag, tagPalette))
             .ToArray();
     }
 

@@ -1,0 +1,358 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Klonker.Desktop.ViewModels"
+             xmlns:services="using:Klonker.Desktop.Services"
+             xmlns:controls="using:Klonker.Desktop.Controls"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="Klonker.Desktop.Views.ModuleConfigurationView"
+             x:DataType="vm:MainViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="1360"
+             d:DesignHeight="776">
+
+  <Design.DataContext>
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+  <Grid Margin="12"
+        RowDefinitions="Auto,*,Auto,Auto"
+        RowSpacing="10">
+    <Grid ColumnDefinitions="Auto,*,Auto"
+          ColumnSpacing="12">
+      <Button AutomationProperties.Name="Back to modules"
+              Classes="ghost"
+              Command="{Binding BackToModuleCatalogCommand}">
+        <StackPanel Orientation="Horizontal"
+                    Spacing="7">
+          <PathIcon Width="15"
+                    Height="15"
+                    Data="{StaticResource IconBack}" />
+          <TextBlock Text="Modules" />
+        </StackPanel>
+      </Button>
+      <StackPanel Grid.Column="1">
+        <TextBlock Classes="eyebrow"
+                   Text="CONFIGURE MODULE" />
+        <StackPanel Margin="0,2,0,0"
+                    Orientation="Horizontal"
+                    Spacing="8">
+          <TextBlock FontSize="17"
+                     FontWeight="SemiBold"
+                     Text="{Binding SelectedModule.Name}" />
+          <TextBlock VerticalAlignment="Center"
+                     Classes="muted"
+                     FontSize="11"
+                     Text="{Binding SelectedModule.RegistryName}" />
+        </StackPanel>
+      </StackPanel>
+      <Border Grid.Column="2"
+              Padding="10,5"
+              Background="{StaticResource AccentMutedBrush}"
+              CornerRadius="12">
+        <TextBlock FontSize="11"
+                   Foreground="{StaticResource AccentBrush}"
+                   Text="{Binding SelectedModule.ModuleId}" />
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="1"
+          ColumnDefinitions="390,*"
+          ColumnSpacing="10">
+      <Border Classes="panel"
+              Padding="15">
+        <Grid RowDefinitions="Auto,*,Auto"
+              RowSpacing="13">
+          <StackPanel>
+            <TextBlock Classes="title"
+                       FontSize="17"
+                       Text="Module slots &amp; values" />
+            <TextBlock Margin="0,3,0,0"
+                       Classes="muted"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Text="Slots are safe relative paths inside the selected target. Existing files are never replaced." />
+          </StackPanel>
+
+          <ScrollViewer Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+              <ItemsControl ItemsSource="{Binding ModuleParameters}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ParameterEditorViewModel">
+                    <StackPanel Margin="0,0,0,16">
+                      <TextBlock FontWeight="SemiBold"
+                                 Text="{Binding Label}" />
+                      <TextBlock Margin="0,3,0,7"
+                                 Classes="muted"
+                                 FontSize="11"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Description}" />
+                      <TextBox Classes="field"
+                               IsVisible="{Binding IsText}"
+                               Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                      <ComboBox Classes="field"
+                                IsVisible="{Binding IsChoice}"
+                                ItemsSource="{Binding Choices}"
+                                SelectedItem="{Binding Value, Mode=TwoWay}" />
+                      <CheckBox IsVisible="{Binding IsBoolean}"
+                                IsChecked="{Binding BooleanValue, Mode=TwoWay}"
+                                Content="Enabled" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Border Height="1"
+                      Margin="0,0,0,14"
+                      Background="{StaticResource BorderBrush}" />
+              <TextBlock FontWeight="SemiBold"
+                         Text="Generation host" />
+              <ComboBox Margin="0,7,0,0"
+                        Classes="field"
+                        ItemsSource="{Binding GenerationHosts}"
+                        SelectedItem="{Binding GenerationHost, Mode=TwoWay}" />
+
+              <StackPanel Margin="0,11,0,0"
+                          IsVisible="{Binding IsWindowsGeneration}">
+                <TextBlock FontWeight="SemiBold"
+                           Text="Existing Windows folder" />
+                <Grid Margin="0,7,0,0"
+                      ColumnDefinitions="*,Auto"
+                      ColumnSpacing="7">
+                  <TextBox Classes="field"
+                           PlaceholderText="D:\projects\ExistingProject"
+                           Text="{Binding DestinationPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Width="40"
+                          Padding="0"
+                          Command="{Binding BrowseDestinationCommand}">
+                    <PathIcon Width="17"
+                              Height="17"
+                              Data="{StaticResource IconBrowse}" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+
+              <StackPanel Margin="0,11,0,0"
+                          IsVisible="{Binding IsWslGeneration}">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="7">
+                  <ComboBox Classes="field"
+                            ItemsSource="{Binding RunningWslDistributions}"
+                            SelectedItem="{Binding SelectedWslDistribution, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="services:WslDistribution">
+                        <TextBlock Text="{Binding Name}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Command="{Binding RefreshWslCommand}"
+                          Content="Refresh" />
+                </Grid>
+                <TextBlock Margin="0,5,0,7"
+                           Classes="muted"
+                           FontSize="10"
+                           TextWrapping="Wrap"
+                           Text="{Binding WslStatusMessage}" />
+                <TextBox Classes="field"
+                         PlaceholderText="/home/me/project"
+                         Text="{Binding WslDestinationPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+              </StackPanel>
+
+              <Border Margin="0,14,0,0"
+                      Padding="10"
+                      Background="{StaticResource InputBrush}"
+                      BorderBrush="{StaticResource BorderBrush}"
+                      BorderThickness="1"
+                      CornerRadius="6"
+                      IsVisible="{Binding HasModulePreview}">
+                <StackPanel>
+                  <TextBlock Classes="eyebrow"
+                             Text="LICENSE AGGREGATION" />
+                  <TextBlock Margin="0,5,0,0"
+                             FontSize="11"
+                             TextWrapping="Wrap"
+                             Text="{Binding ModuleLicenseSummary}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+
+          <Grid Grid.Row="2"
+                ColumnDefinitions="*,*"
+                ColumnSpacing="8">
+            <Button Classes="ghost"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding PreviewModuleCommand}"
+                    Content="Preview module" />
+            <Button Grid.Column="1"
+                    Classes="primary"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding RequestModuleGenerationCommand}"
+                    Content="Add module" />
+          </Grid>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1"
+              Classes="panel"
+              Padding="15">
+        <Grid RowDefinitions="Auto,Auto,*"
+              RowSpacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="title"
+                         FontSize="17"
+                         Text="Preflight preview" />
+              <TextBlock Margin="0,3,0,0"
+                         Classes="muted"
+                         FontSize="12"
+                         Text="Inspect the exact tree before checking it against the destination." />
+            </StackPanel>
+            <TextBlock Grid.Column="1"
+                       Classes="muted"
+                       FontSize="11"
+                       Text="{Binding StatusMessage}" />
+          </Grid>
+
+          <Border Grid.Row="1"
+                  Padding="10"
+                  Background="{StaticResource AccentMutedBrush}"
+                  BorderBrush="{StaticResource AccentBrush}"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  IsVisible="{Binding HasModulePostGenerationInstructions}">
+            <StackPanel>
+              <TextBlock FontWeight="SemiBold"
+                         Text="After generation" />
+              <TextBlock Margin="0,4,0,0"
+                         FontFamily="Cascadia Mono,Consolas"
+                         FontSize="11"
+                         TextWrapping="Wrap"
+                         Text="{Binding ModulePostGenerationInstructions}" />
+            </StackPanel>
+          </Border>
+
+          <Grid Grid.Row="2"
+                ColumnDefinitions="250,*"
+                ColumnSpacing="10"
+                IsVisible="{Binding HasModulePreview}">
+            <Border Classes="inset"
+                    Padding="8">
+              <controls:ProjectTreeView AutomationName="Module files"
+                                        Nodes="{Binding ModulePreview.TreeNodes}"
+                                        SelectedNode="{Binding ModulePreview.SelectedNode, Mode=TwoWay}" />
+            </Border>
+            <controls:SyntaxHighlightedTextView Grid.Column="1"
+                                                AutomationName="Rendered module content"
+                                                FileName="{Binding ModulePreview.SelectedFile.Path}"
+                                                Text="{Binding ModulePreview.SelectedContent}" />
+          </Grid>
+
+          <StackPanel Grid.Row="2"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"
+                      IsVisible="{Binding !HasModulePreview}">
+            <PathIcon Width="36"
+                      Height="36"
+                      Data="{StaticResource IconCode}"
+                      Foreground="{StaticResource TextMutedBrush}" />
+            <TextBlock Margin="0,12,0,0"
+                       Classes="secondary"
+                       Text="Preview the module to see every planned path." />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="2"
+            Classes="warningSurface"
+            Padding="13"
+            IsVisible="{Binding IsGenerationConfirmationVisible}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+            ColumnSpacing="12">
+        <PathIcon Width="19"
+                  Height="19"
+                  Data="{StaticResource IconInfo}"
+                  Foreground="{StaticResource WarningBrush}" />
+        <StackPanel Grid.Column="1">
+          <TextBlock FontWeight="SemiBold"
+                     Text="Confirm module generation" />
+          <TextBlock Margin="0,3,0,0"
+                     Classes="secondary"
+                     FontSize="12"
+                     TextWrapping="Wrap"
+                     Text="{Binding GenerationConfirmationText}" />
+        </StackPanel>
+        <Button Grid.Column="2"
+                Classes="ghost"
+                Command="{Binding CancelGenerationConfirmationCommand}"
+                Content="Cancel" />
+        <Button Grid.Column="3"
+                Classes="primary"
+                Command="{Binding ConfirmModuleGenerationCommand}"
+                Content="Add files now" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2"
+          IsVisible="{Binding HasGenerationResult}">
+      <Border Classes="successSurface"
+              Padding="13"
+              IsVisible="{Binding GenerationResult.Succeeded}">
+        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="11">
+          <PathIcon Width="20"
+                    Height="20"
+                    Data="{StaticResource IconCheck}"
+                    Foreground="{StaticResource AccentBrush}" />
+          <StackPanel Grid.Column="1">
+            <TextBlock FontWeight="SemiBold"
+                       Text="{Binding GenerationResult.Title}" />
+            <TextBlock Margin="0,3,0,0"
+                       Classes="secondary"
+                       TextWrapping="Wrap"
+                       Text="{Binding GenerationResult.Message}" />
+            <TextBlock Margin="0,3,0,0"
+                       Classes="muted"
+                       FontSize="11"
+                       Text="{Binding GenerationResult.DestinationPath}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Padding="13"
+              Background="{StaticResource ErrorSurfaceBrush}"
+              BorderBrush="{StaticResource ErrorBrush}"
+              BorderThickness="1"
+              CornerRadius="7"
+              IsVisible="{Binding GenerationResult.Failed}">
+        <TextBlock Foreground="#FFB4AD"
+                   TextWrapping="Wrap"
+                   Text="{Binding GenerationResult.Message}" />
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="3"
+          ColumnDefinitions="*,Auto">
+      <TextBlock Classes="muted"
+                 FontSize="12"
+                 Text="{Binding StatusMessage}" />
+      <Border Grid.Column="1"
+              Padding="12,8"
+              MaxWidth="760"
+              Background="{StaticResource ErrorSurfaceBrush}"
+              BorderBrush="{StaticResource ErrorBrush}"
+              BorderThickness="1"
+              CornerRadius="6"
+              IsVisible="{Binding HasError}">
+        <TextBlock Foreground="#FFB4AD"
+                   TextWrapping="Wrap"
+                   Text="{Binding ErrorMessage}" />
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

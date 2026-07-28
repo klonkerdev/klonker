@@ -42,7 +42,12 @@ public sealed class LocalSettingsTests
             DiagnosticLoggingEnabled: true,
             DiagnosticLogLevel.Verbose,
             PrerequisiteProbesEnabled: true,
-            RegistryDownloadTimeoutSeconds: 45));
+            RegistryDownloadTimeoutSeconds: 45,
+            RegistryVersionPreference.LatestIncludingPrerelease,
+            ImmutableDictionary<string, string>.Empty.Add(
+                "tests:item",
+                "2.0.0-beta.1"),
+            RegistryDuplicateSourcePolicy.RejectDuplicates));
 
         var loaded = store.Load();
 
@@ -52,6 +57,51 @@ public sealed class LocalSettingsTests
         Assert.Equal(DiagnosticLogLevel.Verbose, loaded.Value?.DiagnosticLogLevel);
         Assert.True(loaded.Value?.PrerequisiteProbesEnabled);
         Assert.Equal(45, loaded.Value?.RegistryDownloadTimeoutSeconds);
+        Assert.Equal(
+            RegistryVersionPreference.LatestIncludingPrerelease,
+            loaded.Value?.RegistryVersionPreference);
+        Assert.Equal(
+            "2.0.0-beta.1",
+            loaded.Value?.RegistryVersionPins?["tests:item"]);
+        Assert.Equal(
+            RegistryDuplicateSourcePolicy.RejectDuplicates,
+            loaded.Value?.RegistryDuplicateSourcePolicy);
+    }
+
+    [Fact]
+    public void PersonalCatalogTabs_AreAppLocalAndRoundTripMixedPolicies()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var store = new CatalogTabStore(temporaryDirectory.Path);
+        var saved = store.Save(
+        [
+            new CatalogTabDefinition(
+                "work",
+                "Work",
+                CatalogTabKind.SelectedTemplates,
+                ImmutableArray.Create("tests:template")),
+            new CatalogTabDefinition(
+                "modules",
+                "Modules",
+                CatalogTabKind.FavoriteModules,
+                []),
+        ]);
+
+        var loaded = store.Load();
+
+        Assert.True(saved.IsSuccess);
+        Assert.True(loaded.IsSuccess);
+        Assert.Equal(2, loaded.Value!.Tabs.Length);
+        Assert.Contains(
+            loaded.Value.Tabs,
+            tab => tab.Kind == CatalogTabKind.FavoriteModules);
+        Assert.Equal(
+            ["catalog-tabs.json"],
+            Directory.GetFiles(
+                    temporaryDirectory.Path,
+                    "*",
+                    SearchOption.AllDirectories)
+                .Select(Path.GetFileName));
     }
 
     [Fact]

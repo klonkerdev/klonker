@@ -11,6 +11,9 @@ The first generation and registry vertical slices are implemented:
 
 - registry schema version 1 qualifies identities by registry and requires
   package SHA-256/size metadata;
+- registries index templates and reusable modules separately, and the catalog
+  resolves multiple published versions using newest-stable/newest-any policy
+  or exact app-local pins;
 - `%LOCALAPPDATA%\Klonker\registries.json` configures local and HTTPS remote
   sources, publisher trust, and rotated/revoked keys outside the repository;
 - the official registry index is verified against an app-pinned detached
@@ -49,27 +52,58 @@ The first generation and registry vertical slices are implemented:
   or executing template commands;
 - an in-app settings window edits registry sources and publisher keys,
   appearance, diagnostics, system behavior, and local cache/preferences;
+- an About window shows the running build version, platform/runtime details,
+  project purpose, repository documentation, MIT license, and author
+  [@SleathCobra](https://github.com/SleathCobra);
+- an animated in-app template wizard creates registry-source packages from
+  configurable language/build-system/platform cards, including `Any platform`
+  and multi-build variant matrices, inspects existing folders, or derives a
+  detached editable package from a loaded catalog template;
+- the wizard validates `template.toml` runtime packages and
+  `package.toml`/`variants/` registry sources, reports actionable findings,
+  previews every planned authoring file, and never edits the inspected tree;
+- an in-app registry workspace wizard creates development or production
+  source trees, imports authoring packages, discovers and builds all variants
+  generically, registers local development indexes, and creates detached
+  publisher signatures with private keys kept outside the workspace;
 - Desktop provides a destination field/native folder picker, explicit
   confirmation, transactional Generate action, cancellation, and structured
   success/failure details;
 - Core writes a validated plan only to a new or empty directory;
+- a separately indexed module can add a preflighted file tree to an existing
+  project without overwriting any path, while presenting dependency licenses
+  and inert post-generation instructions;
+- projects and modules can target a selected running WSL distribution; the
+  destination is transferred through the Windows WSL provider and every file
+  is read back and compared with the preview;
+- the catalog has separate Templates and Modules views plus app-local
+  favorite or curated tabs created with `+`;
 - automated tests cover manifests, values, rendering, paths, planning,
   registry integrity/cache/offline behavior, execution, and headless
   view-model behavior.
 
 ## Version-one scope
 
-Version one is a project generator. It will discover templates from configured
-registries, cache packages for offline use, show independently versioned
-variants, validate configuration and consented known prerequisites, preview output, and
-generate into a new or empty destination. Windows destinations come first;
-generation inside a selected WSL distribution is planned.
+Version one is a project and reusable-module generator with detached template
+and registry-authoring assistants. It discovers templates and modules from
+configured registries, caches packages for offline use, selects independently
+published versions, validates configuration and consented known
+prerequisites, previews output, and generates on Windows or in a selected
+running WSL distribution. Project templates retain the new/empty destination
+rule. Modules are the narrow additive exception: they may target a non-empty
+tree only after a complete no-overwrite conflict preflight. The authoring
+wizard can create or inspect template source packages without managing the
+source project.
 
 Klonker does **not** build generated projects, run build tools, install SDKs,
-execute arbitrary template scripts, manage Git, import existing projects,
-merge into non-empty trees, or update a project after generation. It is not a
-build system or package manager. Generated projects are entirely detached from
-Klonker and belong to the user.
+execute arbitrary template/module scripts, manage Git, adopt existing
+projects, merge project templates into non-empty trees, or update generated
+content after generation. Existing-folder authoring is read-only inspection
+plus an optional detached content copy. Module installation adds only its
+precomputed, currently absent paths; it does not merge or modify existing
+files. Klonker is not a build system or dependency package manager. Generated
+projects and module files are entirely detached from Klonker and belong to
+the user.
 
 ## Prerequisites
 
@@ -120,8 +154,9 @@ To build deterministic ZIP/index artifacts for a separate registry repository:
 ```
 
 The source root uses `registry.toml` plus discovered
-`templates/<namespace>/<package>/variants/<variant>` folders; template entries
-are not maintained by hand. See
+`templates/<namespace>/<package>/variants/<variant>` and
+`modules/<namespace>/<module>` folders; index entries are not maintained by
+hand. See
 [Official registry](docs/official-registry.md).
 
 ## Repository layout
@@ -170,14 +205,18 @@ explicit revoked-key records support publisher key rotation.
 - [Development](docs/development.md)
 - [Testing](docs/testing.md)
 - [Template format v0](docs/template-format-v0.md)
+- [Module format v0](docs/module-format-v0.md)
 - [Registry format v1](docs/registry-format-v1.md)
+- [WSL generation](docs/wsl-generation.md)
 - [Official registry preparation](docs/official-registry.md)
+- [Template authoring wizard](docs/template-authoring.md)
+- [Registry workspace wizard](docs/registry-workspaces.md)
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/)
 
 ## Short roadmap
 
-Next work focuses on conflict/version policy and broader template coverage.
-WSL generation, modules, and agent integrations remain deferred.
+Next work focuses on broader catalog coverage, usability refinement, and
+optional agent integrations.
 
 Klonker is licensed under the [MIT License](LICENSE).

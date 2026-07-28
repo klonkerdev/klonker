@@ -1,7 +1,9 @@
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Klonker.Core.Diagnostics;
+using Klonker.Core.Registry;
 using Klonker.Desktop.Services;
 
 namespace Klonker.Desktop.ViewModels;
@@ -41,6 +43,16 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public IReadOnlyList<DiagnosticLogLevel> DiagnosticLogLevelOptions { get; } =
         Enum.GetValues<DiagnosticLogLevel>();
 
+    public IReadOnlyList<RegistryVersionPreference>
+        RegistryVersionPreferenceOptions
+    { get; } =
+        Enum.GetValues<RegistryVersionPreference>();
+
+    public IReadOnlyList<RegistryDuplicateSourcePolicy>
+        RegistryDuplicateSourcePolicyOptions
+    { get; } =
+        Enum.GetValues<RegistryDuplicateSourcePolicy>();
+
     public string ApplicationDataPath { get; }
 
     public string CachePath { get; }
@@ -65,6 +77,17 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     public partial int RegistryDownloadTimeoutSeconds { get; set; } =
         AppSettingsStore.DefaultRegistryDownloadTimeoutSeconds;
+
+    [ObservableProperty]
+    public partial RegistryVersionPreference RegistryVersionPreference { get; set; } =
+        RegistryVersionPreference.LatestStable;
+
+    [ObservableProperty]
+    public partial RegistryDuplicateSourcePolicy RegistryDuplicateSourcePolicy { get; set; } =
+        RegistryDuplicateSourcePolicy.PreferFirstConfiguredSource;
+
+    [ObservableProperty]
+    public partial string RegistryVersionPinsText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial bool Offline { get; set; }
@@ -109,13 +132,23 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private void Save()
     {
         ErrorMessage = null;
+        var pins = ParseVersionPins(RegistryVersionPinsText);
+        if (!pins.IsSuccess)
+        {
+            SetFailure(pins.Issues, "Registry version pins are invalid.");
+            return;
+        }
+
         var settings = settingsStore.Save(new AppSettingsSnapshot(
             settingsStore.StoragePath,
             Appearance,
             DiagnosticLoggingEnabled,
             DiagnosticLogLevel,
             PrerequisiteProbesEnabled,
-            RegistryDownloadTimeoutSeconds));
+            RegistryDownloadTimeoutSeconds,
+            RegistryVersionPreference,
+            pins.Value!.ToImmutableDictionary(StringComparer.Ordinal),
+            RegistryDuplicateSourcePolicy));
         if (!settings.IsSuccess)
         {
             SetFailure(settings.Issues, "Application settings could not be saved.");
@@ -190,6 +223,16 @@ public sealed partial class SettingsViewModel : ViewModelBase
         PrerequisiteProbesEnabled = settings.Value.PrerequisiteProbesEnabled;
         RegistryDownloadTimeoutSeconds =
             settings.Value.RegistryDownloadTimeoutSeconds;
+        RegistryVersionPreference =
+            settings.Value.RegistryVersionPreference;
+        RegistryDuplicateSourcePolicy =
+            settings.Value.RegistryDuplicateSourcePolicy;
+        RegistryVersionPinsText = string.Join(
+            Environment.NewLine,
+            (settings.Value.RegistryVersionPins ??
+             ImmutableDictionary<string, string>.Empty)
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => $"{pair.Key}={pair.Value}"));
         Offline = registries.Value!.Offline;
         RegistrySources.Clear();
         foreach (var source in registries.Value.Sources)
@@ -198,6 +241,49 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
 
         StatusMessage = "Settings loaded";
+    }
+
+    private static OperationResult<Dictionary<string, string>>
+        ParseVersionPins(string text)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var issues = new List<ValidationIssue>();
+        foreach (var rawLine in text.Split(
+                     ['\r', '\n'],
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#'))
+            {
+                continue;
+            }
+
+            var separator = line.IndexOf('=');
+            if (separator <= 0 ||
+                separator == line.Length - 1)
+            {
+                issues.Add(new ValidationIssue(
+                    ValidationSeverity.Error,
+                    "settings.version_pin_invalid",
+                    $"Version pin '{line}' must use registry:item=version."));
+                continue;
+            }
+
+            var identity = line[..separator].Trim();
+            var version = line[(separator + 1)..].Trim();
+            if (!identity.Contains(':', StringComparison.Ordinal) ||
+                !result.TryAdd(identity, version))
+            {
+                issues.Add(new ValidationIssue(
+                    ValidationSeverity.Error,
+                    "settings.version_pin_invalid",
+                    $"Version pin '{line}' has an invalid or duplicate qualified ID."));
+            }
+        }
+
+        return issues.Count == 0
+            ? new OperationResult<Dictionary<string, string>>(result, [])
+            : new OperationResult<Dictionary<string, string>>(null, issues);
     }
 
     private void ApplyMaintenance(

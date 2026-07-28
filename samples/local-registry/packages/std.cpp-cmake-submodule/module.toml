@@ -1,0 +1,42 @@
+schema_version = 0
+id = "std.cpp-cmake-submodule"
+name = "CMake C++ submodule"
+description = "Adds a small C++ library target with public headers, sources, and a local CMakeLists file."
+version = "0.1.0"
+language = "cpp"
+source_license = "MIT"
+tags = ["cpp", "cmake", "module"]
+post_generation_instructions = """
+Add this line to the parent CMakeLists.txt:
+
+add_subdirectory({{ module_root }})
+
+Then link the generated target:
+
+target_link_libraries(your_target PRIVATE {{ snake_case library_name }})
+"""
+
+[[slots]]
+id = "module_root"
+label = "Module folder"
+description = "Relative folder inside the selected existing project."
+required = true
+default = "src/example"
+
+[[parameters]]
+id = "library_name"
+type = "string"
+label = "Library name"
+description = "C++ target and namespace name."
+required = true
+default = "ExampleLibrary"
+validation = "cpp_identifier"
+
+[[parameters]]
+id = "class_name"
+type = "string"
+label = "Class name"
+description = "Name of the starter public class."
+required = true
+default = "Example"
+validation = "cpp_identifier"

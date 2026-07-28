@@ -13,4 +13,7 @@ public sealed record RegistryTemplateEntry(
     string LicenseSummary,
     string PackageSha256,
     long PackageSizeBytes,
-    string Language = "unknown");
+    string Language = "unknown") : IRegistryPackageEntry
+{
+    public string ArtifactId => TemplateId;
+}

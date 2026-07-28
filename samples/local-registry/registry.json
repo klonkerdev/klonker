@@ -18,5 +18,23 @@
       "package_sha256": "c4aaaf4720fb074595b1ef48cf93abac3ed0117a9361f16e644212a5268d98f2",
       "package_size_bytes": 923401
     }
+  ],
+  "modules": [
+    {
+      "module_id": "std.cpp-cmake-submodule",
+      "name": "CMake C++ submodule",
+      "description": "Adds a small C++ library target with public headers, sources, and a local CMakeLists file.",
+      "version": "0.1.0",
+      "language": "cpp",
+      "package_path": "packages/std.cpp-cmake-submodule",
+      "license_summary": "MIT",
+      "package_sha256": "b6cbf914c3c1e508dddd088ae2d74e64754cda2a826219051923160bf33bebc1",
+      "package_size_bytes": 1646,
+      "tags": [
+        "cpp",
+        "cmake",
+        "module"
+      ]
+    }
   ]
 }

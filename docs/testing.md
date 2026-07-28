@@ -15,6 +15,14 @@
   package SHA-256/size, safe ZIP extraction, online caching, cached-index
   fallback, detached publisher signatures, active/revoked trust keys, and
   zero-network offline reuse.
+- **Version policy:** multi-version identities, stable/prerelease ordering,
+  exact pins, unavailable-pin warnings, and deterministic fallbacks.
+- **Module integration:** module manifest/slot validation, restricted
+  rendering, dependency-license aggregation, non-empty destinations,
+  complete conflict preflight, rollback, and read-back verification.
+- **WSL boundary:** UTF-16/UTF-8 distribution output decoding, absolute Linux
+  path mapping, and unsafe/incompatible path rejection without requiring an
+  installed distribution.
 - **Desktop logic:** the single test project references Desktop and exercises
   catalog failure, registry-qualified package grouping, package/variant
   navigation, filters, platform/build-system presentation, tree construction,
@@ -26,6 +34,15 @@
   preview behavior, destination picking, explicit generation confirmation,
   structured diagnostics, consented prerequisite probes, and preview navigation without
   launching Avalonia windows.
+- **Template authoring:** temporary source trees validate platform/build-system
+  matrix planning, build-seed isolation, `any` exclusivity, starter rendering,
+  tool-directory exclusion, source/destination
+  separation, runtime/source inspection, actionable schema findings,
+  transactional installation, and headless wizard navigation.
+- **Registry authoring:** temporary source workspaces validate generic
+  package/variant and module discovery, imported package layout, runtime composition,
+  canonical integrity metadata, transactional `dist` installation, detached
+  signing, and reload through the production local-registry reader.
 
 Run:
 
@@ -60,8 +77,9 @@ that no output escapes the destination. Registry archive tests must include
 traversal, case collisions, file/directory collisions, links where practical,
 checksum mismatch, and offline cache misses.
 
-Repository validation enumerates sample registry indexes, their entries, and
-all referenced package manifests. A new data-only package or variant must pass
+Repository validation enumerates sample registry indexes, their template and
+module entries, and all referenced manifests. A new data-only package,
+variant, or module must pass
 the same generic identity/path/integrity checks and does not require a
 hardcoded test branch.
 
@@ -82,4 +100,22 @@ successful result is visible, custom window buttons work, and the window
 remains usable at its minimum size. Open Settings and smoke-test registry row
 editing, theme switching, publisher key rows, probe consent, and the scoped
 cache/preferences reset actions.
+Open the Template wizard and smoke-test all three entry modes, forward/back
+animation, language/build-system mapping, multi-build and `Any platform`
+cards, catalog-template copying, existing-folder
+refresh, issue readability, preview selection, and successful generation into
+a new directory. Confirm the inspected source remains byte-for-byte unchanged.
+Open the Registry workspace wizard and smoke-test a development registry with
+an imported authoring package, local registration, a repeat rebuild, existing
+source validation, and production key generation with the private key outside
+the workspace. Confirm the built variants appear after catalog refresh.
 Native-window automation is deferred until it provides stable value.
+
+For modules, switch to the Modules tab, verify slot and parameter rendering,
+preview the complete tree, target a non-empty folder with unrelated content,
+and confirm that a colliding path blocks all writes. Review aggregated
+licenses and rendered post-generation instructions. Create favorite and
+curated personal tabs with `+`, restart, and verify they remain app-local.
+For WSL, start a test distribution, refresh the running-only list, generate to
+an absolute Linux path, and verify Klonker reports directory and byte
+read-back success.

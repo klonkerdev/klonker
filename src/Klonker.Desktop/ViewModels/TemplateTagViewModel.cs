@@ -1,15 +1,18 @@
 using Avalonia.Media;
+using Klonker.Desktop.Services;
 
 namespace Klonker.Desktop.ViewModels;
 
 public sealed class TemplateTagViewModel
 {
-    public TemplateTagViewModel(string label)
+    public TemplateTagViewModel(
+        string label,
+        TemplateTagPalette tagPalette)
     {
         Label = label;
-        var (background, foreground) = GetPalette(StablePaletteIndex(label));
-        Background = Brush.Parse(background);
-        Foreground = Brush.Parse(foreground);
+        var brushes = tagPalette.GetBrushes(StablePaletteIndex(label));
+        Background = brushes.Background;
+        Foreground = brushes.Foreground;
     }
 
     public string Label { get; }
@@ -28,15 +31,4 @@ public sealed class TemplateTagViewModel
 
         return (hash & int.MaxValue) % 6;
     }
-
-    private static (string Background, string Foreground) GetPalette(int index) =>
-        index switch
-        {
-            0 => ("#123034", "#55D6BE"),
-            1 => ("#172A3D", "#70AFFF"),
-            2 => ("#29223D", "#B59BFF"),
-            3 => ("#352A16", "#E7B64C"),
-            4 => ("#371E2A", "#FF8FB1"),
-            _ => ("#183322", "#68D779"),
-        };
 }

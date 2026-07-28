@@ -7,4 +7,7 @@ public sealed record TemplateCatalogSnapshot(
     ImmutableArray<RegistryTemplatePackage> Templates,
     string ConfigurationPath,
     string CacheRoot,
-    bool Offline);
+    bool Offline,
+    ImmutableArray<RegistryModulePackage> Modules = default,
+    ImmutableArray<RegistryTemplateVersionSelection> TemplateVersions = default,
+    ImmutableArray<RegistryModuleVersionSelection> ModuleVersions = default);

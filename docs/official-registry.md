@@ -35,6 +35,12 @@ templates/
         <variant>/
           variant.toml
           content/              variant payload
+modules/
+  <namespace>/
+    <module>/
+      module.toml
+      README.md                 optional module-specific documentation
+      content/
 dist/
   registry.json
   registry.json.sig.json
@@ -48,14 +54,17 @@ The publisher discovers every exact
 `variants/<variant>/variant.toml`. Folder names derive family, variant, and
 template identities. Adding another namespace, package, or variant therefore
 requires no edit to validation code, this document, or a catalog table.
+It independently discovers every
+`modules/<namespace>/<module>/module.toml`, derives the module ID from the
+matching folders, and emits the index's separate `modules` collection.
 
 `package.toml` owns shared description, language, licensing, tags, parameters,
 assets, and content. `variant.toml` owns target OS, build system, version,
 variant tags, prerequisites, and variant-specific content. Favorite state is
 never allowed in either source or the generated runtime manifest.
 
-If a package needs long-form prose, its `README.md` stays beside
-`package.toml`. The generated Markdown catalog links that file, while
+If a package or module needs long-form prose, its `README.md` stays beside its
+source manifest. The generated Markdown catalog links that file, while
 `catalog.json` exports its repository-relative path.
 
 ## Build and validation
@@ -69,7 +78,7 @@ In the standalone registry repository:
 
 The generic publisher:
 
-- discovers every package and variant;
+- discovers every package, variant, and module;
 - validates source identity and required metadata;
 - rejects unsafe paths, reparse points, case collisions, and
   file/directory collisions;
@@ -84,7 +93,7 @@ Validation publishes twice and compares the complete generated trees, compares
 the result with committed `dist/` (excluding the separately verified
 signature), checks every discovered source-to-index mapping and package
 archive, and verifies the committed signature. It contains no template ID,
-package count, language family, or required-file special case.
+module ID, package count, language family, or required-file special case.
 
 ## Publisher trust and key rotation
 

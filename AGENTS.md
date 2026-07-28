@@ -3,16 +3,18 @@
 ## Purpose and boundaries
 
 Klonker is a Windows-first desktop tool that creates new programming projects
-from reusable templates. Version one is a generator: it discovers templates,
-collects values, validates and previews output, then generates into a new or
-empty directory.
+and reusable project modules. Version one discovers templates and modules,
+collects values, validates and previews output, then generates projects into
+a new or empty directory or adds a completely preflighted module tree without
+overwriting existing paths.
 
 Klonker does not build, run, update, import, or manage generated projects. It
-does not install SDKs, initialize Git, execute template scripts, or merge into
-non-empty trees. Local/HTTPS registries, package integrity checks, offline
-caching, preview, transactional Windows generation, and the external official
-registry are implemented. WSL generation, signatures, and modules are planned.
-Generated projects are fully detached from Klonker.
+does not install SDKs, initialize Git, execute package scripts, or merge
+template output into non-empty trees. Local/HTTPS registries, package
+integrity and publisher signatures, offline caching, preview, transactional
+Windows/WSL generation, reusable modules, and the external official registry
+are implemented. Generated projects and modules are fully detached from
+Klonker.
 
 ## Repository structure
 
@@ -91,8 +93,9 @@ requests. Checksums are integrity controls, not signature/trust controls.
 Official registry source uses
 `templates/<namespace>/<package>/variants/<variant>`. The publisher discovers
 `package.toml` and `variant.toml`, derives IDs from matching folder names, and
-generates the runtime manifest and JSON index. Do not reintroduce a handwritten
-template array or a flat directory per variant.
+generates the runtime manifest and JSON index. Modules use
+`modules/<namespace>/<module>` with `module.toml` and are indexed separately.
+Do not reintroduce handwritten arrays or a flat directory per variant.
 
 ## Testing and documentation
 

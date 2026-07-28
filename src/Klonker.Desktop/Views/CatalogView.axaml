@@ -46,7 +46,8 @@
     <Grid ColumnDefinitions="330,*"
           ColumnSpacing="10">
       <Border Classes="panel"
-              Padding="16">
+              Padding="16"
+              IsVisible="{Binding IsTemplateCatalog}">
         <Grid RowDefinitions="Auto,Auto,*,Auto"
               RowSpacing="16">
           <StackPanel>
@@ -389,10 +390,265 @@
         </Grid>
       </Border>
 
+      <Border Classes="panel"
+              Padding="16"
+              IsVisible="{Binding IsModuleCatalog}">
+        <Grid RowDefinitions="Auto,*,Auto"
+              RowSpacing="16">
+          <StackPanel>
+            <TextBlock Classes="eyebrow"
+                       Text="REUSABLE MODULE" />
+            <TextBlock Margin="0,4,0,0"
+                       FontSize="19"
+                       FontWeight="SemiBold"
+                       Text="{Binding SelectedModule.Name}" />
+            <TextBlock Margin="0,5,0,0"
+                       Classes="muted"
+                       FontSize="11"
+                       Text="{Binding SelectedModule.QualifiedId}"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+
+          <ScrollViewer Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto">
+            <StackPanel IsVisible="{Binding HasSelectedModule}">
+              <Border Padding="12"
+                      Background="{StaticResource AccentMutedBrush}"
+                      BorderBrush="{StaticResource AccentBrush}"
+                      BorderThickness="1"
+                      CornerRadius="8">
+                <Grid ColumnDefinitions="Auto,*"
+                      ColumnSpacing="11">
+                  <Border Width="44"
+                          Height="44"
+                          Background="{StaticResource SurfaceRaisedBrush}"
+                          CornerRadius="8">
+                    <PathIcon Width="23"
+                              Height="23"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Data="{StaticResource IconPackage}"
+                              Foreground="{StaticResource AccentBrush}" />
+                  </Border>
+                  <StackPanel Grid.Column="1"
+                              VerticalAlignment="Center">
+                    <TextBlock FontSize="13"
+                               FontWeight="SemiBold"
+                               Text="{Binding SelectedModule.ModuleId}" />
+                    <TextBlock Margin="0,3,0,0"
+                               Classes="muted"
+                               FontSize="10"
+                               Text="{Binding SelectedModule.RegistryName}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <TextBlock Margin="0,15,0,0"
+                         Classes="secondary"
+                         FontSize="12"
+                         TextWrapping="Wrap"
+                         Text="{Binding SelectedModule.Description}" />
+
+              <Grid Margin="0,15,0,0"
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="8">
+                <Border Padding="10"
+                        Background="{StaticResource InputBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                  <StackPanel>
+                    <TextBlock Classes="eyebrow"
+                               FontSize="9"
+                               Text="SLOTS" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Text="{Binding SelectedModule.SlotSummary}" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1"
+                        Padding="10"
+                        Background="{StaticResource InputBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                  <StackPanel>
+                    <TextBlock Classes="eyebrow"
+                               FontSize="9"
+                               Text="LICENSES" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Text="{Binding SelectedModule.DependencySummary}" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+
+              <Border Margin="0,14,0,0"
+                      Padding="10"
+                      Background="{StaticResource InputBrush}"
+                      BorderBrush="{StaticResource BorderBrush}"
+                      BorderThickness="1"
+                      CornerRadius="6">
+                <TextBlock Classes="muted"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="Modules preflight their complete tree and can target a non-empty folder. Any existing file or file/directory collision aborts before writing." />
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+
+          <Button Grid.Row="2"
+                  AutomationProperties.Name="Configure selected module"
+                  Classes="primary"
+                  HorizontalContentAlignment="Center"
+                  Command="{Binding OpenModuleConfigurationCommand}"
+                  CommandParameter="{Binding SelectedModule}">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="8">
+              <TextBlock VerticalAlignment="Center"
+                         Text="Configure module" />
+              <PathIcon Width="15"
+                        Height="15"
+                        Data="{StaticResource IconArrowRight}" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+
       <Grid Grid.Column="1"
-            RowDefinitions="Auto,*"
+            RowDefinitions="Auto,Auto,*"
             RowSpacing="10">
         <Border Classes="panel"
+                Padding="8">
+          <StackPanel Spacing="8">
+            <StackPanel Orientation="Horizontal"
+                        Spacing="6">
+              <Button AutomationProperties.Name="Template catalog tab"
+                      Classes="ghost"
+                      Command="{Binding ShowTemplatesCatalogCommand}"
+                      Content="Templates" />
+              <Button AutomationProperties.Name="Module catalog tab"
+                      Classes="ghost"
+                      Command="{Binding ShowModulesCatalogCommand}">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="7">
+                  <TextBlock Text="Modules" />
+                  <Border Padding="6,2"
+                          Background="{StaticResource AccentMutedBrush}"
+                          CornerRadius="8">
+                    <TextBlock FontSize="9"
+                               Foreground="{StaticResource AccentBrush}"
+                               Text="{Binding Modules.Count}" />
+                  </Border>
+                </StackPanel>
+              </Button>
+              <ItemsControl ItemsSource="{Binding CustomCatalogTabs}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="6" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:CatalogTabViewModel">
+                    <Button Classes="ghost"
+                            Tag="{Binding}"
+                            Click="OnCustomCatalogTabClicked"
+                            Content="{Binding Name}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <Button AutomationProperties.Name="Remove active personal tab"
+                      Classes="icon"
+                      ToolTip.Tip="Remove the selected personal tab"
+                      IsVisible="{Binding HasActiveCustomCatalogTab}"
+                      Command="{Binding RemoveActiveCatalogTabCommand}">
+                <PathIcon Width="13"
+                          Height="13"
+                          Data="{StaticResource IconClose}" />
+              </Button>
+              <Button AutomationProperties.Name="Add catalog tab"
+                      Classes="icon"
+                      ToolTip.Tip="Create a personal catalog tab"
+                      Command="{Binding BeginAddCatalogTabCommand}">
+                <TextBlock FontSize="17"
+                           Text="+" />
+              </Button>
+            </StackPanel>
+
+            <Border Padding="11"
+                    Background="{StaticResource InputBrush}"
+                    BorderBrush="{StaticResource AccentBrush}"
+                    BorderThickness="1"
+                    CornerRadius="7"
+                    IsVisible="{Binding IsCatalogTabEditorVisible}">
+              <Grid RowDefinitions="Auto,Auto,Auto"
+                    RowSpacing="8">
+                <Grid ColumnDefinitions="*,*,Auto,Auto"
+                      ColumnSpacing="8">
+                  <TextBox Classes="field"
+                           PlaceholderText="Tab name, e.g. Work"
+                           Text="{Binding NewCatalogTabName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                  <ComboBox Grid.Column="1"
+                            Classes="field"
+                            ItemsSource="{Binding CatalogTabKinds}"
+                            SelectedItem="{Binding SelectedCatalogTabKind, Mode=TwoWay}" />
+                  <Button Grid.Column="2"
+                          Classes="ghost"
+                          Command="{Binding CancelAddCatalogTabCommand}"
+                          Content="Cancel" />
+                  <Button Grid.Column="3"
+                          Classes="primary"
+                          Command="{Binding CreateCatalogTabCommand}"
+                          Content="Create tab" />
+                </Grid>
+                <TextBlock Grid.Row="1"
+                           Classes="muted"
+                           FontSize="10"
+                           TextWrapping="Wrap"
+                           Text="{Binding SelectedCatalogTabKind.Description}" />
+                <ScrollViewer Grid.Row="2"
+                              MaxHeight="135"
+                              VerticalScrollBarVisibility="Auto"
+                              IsVisible="{Binding IsCatalogTabSelectionRequired}">
+                  <ItemsControl ItemsSource="{Binding CatalogTabCandidates}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:CatalogTabCandidateViewModel">
+                        <Border Width="270"
+                                Margin="0,0,7,7"
+                                Padding="8"
+                                Background="{StaticResource SurfaceRaisedBrush}"
+                                CornerRadius="5">
+                          <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                            <StackPanel>
+                              <TextBlock FontSize="11"
+                                         Text="{Binding Label}"
+                                         TextTrimming="CharacterEllipsis" />
+                              <TextBlock Margin="0,2,0,0"
+                                         Classes="muted"
+                                         FontSize="9"
+                                         Text="{Binding Detail}" />
+                            </StackPanel>
+                          </CheckBox>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="panel"
+                Grid.Row="1"
                 Padding="13">
           <Grid ColumnDefinitions="2*,1*,1*,1*,1*"
                 ColumnSpacing="8">
@@ -420,12 +676,14 @@
                       AutomationProperties.Name="Platform filter"
                       Classes="field"
                       ItemsSource="{Binding Platforms}"
-                      SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}" />
+                      SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}"
+                      IsVisible="{Binding IsTemplateCatalog}" />
             <ComboBox Grid.Column="3"
                       AutomationProperties.Name="Build system filter"
                       Classes="field"
                       ItemsSource="{Binding BuildSystems}"
-                      SelectedItem="{Binding SelectedBuildSystem, Mode=TwoWay}" />
+                      SelectedItem="{Binding SelectedBuildSystem, Mode=TwoWay}"
+                      IsVisible="{Binding IsTemplateCatalog}" />
             <ComboBox Grid.Column="4"
                       AutomationProperties.Name="Tag filter"
                       Classes="field"
@@ -434,7 +692,7 @@
           </Grid>
         </Border>
 
-        <Border Grid.Row="1"
+        <Border Grid.Row="2"
                 Classes="panel"
                 Padding="15">
           <Grid RowDefinitions="Auto,*"
@@ -466,7 +724,7 @@
                      BorderThickness="0"
                      ItemsSource="{Binding FilteredPackages}"
                      SelectedItem="{Binding SelectedPackage, Mode=TwoWay}"
-                     IsVisible="{Binding IsPackageSelection}"
+                     IsVisible="{Binding IsTemplatePackageSelection}"
                      PointerPressed="OnPackagePointerPressed">
               <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -476,14 +734,14 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:PackageListItemViewModel">
                   <Border Width="330"
-                          Height="230"
+                          MinHeight="230"
                           Padding="14"
                           Classes="catalogCard"
                           Background="{StaticResource SurfaceRaisedBrush}"
                           BorderBrush="{StaticResource BorderStrongBrush}"
                           BorderThickness="1"
                           CornerRadius="8">
-                    <Grid RowDefinitions="Auto,Auto,Auto,*"
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                           RowSpacing="11">
                       <Grid ColumnDefinitions="Auto,*,Auto"
                             ColumnSpacing="11">
@@ -631,7 +889,7 @@
                           </ItemsControl.ItemsPanel>
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:TemplateTagViewModel">
-                              <Border Margin="0,0,5,0"
+                              <Border Margin="0,0,5,5"
                                       Padding="6,3"
                                       Background="{Binding Background}"
                                       BorderBrush="{StaticResource BorderBrush}"
@@ -671,7 +929,7 @@
                      BorderThickness="0"
                      ItemsSource="{Binding FilteredVariants}"
                      SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
-                     IsVisible="{Binding IsVariantSelection}"
+                     IsVisible="{Binding IsTemplateVariantSelection}"
                      PointerPressed="OnVariantPointerPressed">
               <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -681,14 +939,14 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:TemplateListItemViewModel">
                   <Border Width="310"
-                          Height="238"
+                          MinHeight="238"
                           Padding="14"
                           Classes="catalogCard"
                           Background="{StaticResource SurfaceRaisedBrush}"
                           BorderBrush="{StaticResource BorderStrongBrush}"
                           BorderThickness="1"
                           CornerRadius="8">
-                    <Grid RowDefinitions="Auto,Auto,Auto,*"
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                           RowSpacing="11">
                       <Grid ColumnDefinitions="*,Auto"
                             ColumnSpacing="8">
@@ -852,7 +1110,7 @@
                           </ItemsControl.ItemsPanel>
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:TemplateTagViewModel">
-                              <Border Margin="0,0,5,0"
+                              <Border Margin="0,0,5,5"
                                       Padding="6,3"
                                       Background="{Binding Background}"
                                       BorderBrush="{StaticResource BorderBrush}"
@@ -873,6 +1131,167 @@
                                 Tag="{Binding}"
                                 Click="OnConfigureVariantClicked"
                                 ToolTip.Tip="Configure and preview">
+                          <PathIcon Width="16"
+                                    Height="16"
+                                    Data="{StaticResource IconArrowRight}"
+                                    Foreground="{StaticResource AccentBrush}" />
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <ListBox Grid.Row="1"
+                     AutomationProperties.Name="Module catalog"
+                     Classes="catalogCards"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     ItemsSource="{Binding FilteredModules}"
+                     SelectedItem="{Binding SelectedModule, Mode=TwoWay}"
+                     IsVisible="{Binding IsModuleCatalog}"
+                     PointerPressed="OnModulePointerPressed">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModuleListItemViewModel">
+                  <Border Width="330"
+                          MinHeight="230"
+                          Padding="14"
+                          Classes="catalogCard"
+                          Background="{StaticResource SurfaceRaisedBrush}"
+                          BorderBrush="{StaticResource BorderStrongBrush}"
+                          BorderThickness="1"
+                          CornerRadius="8">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                          RowSpacing="11">
+                      <Grid ColumnDefinitions="Auto,*,Auto"
+                            ColumnSpacing="11">
+                        <Border Width="50"
+                                Height="50"
+                                Background="{StaticResource AccentMutedBrush}"
+                                CornerRadius="8">
+                          <PathIcon Width="25"
+                                    Height="25"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Data="{StaticResource IconPackage}"
+                                    Foreground="{StaticResource AccentBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1"
+                                    VerticalAlignment="Center">
+                          <TextBlock FontSize="16"
+                                     FontWeight="SemiBold"
+                                     Text="{Binding Name}" />
+                          <TextBlock Margin="0,3,0,0"
+                                     Classes="muted"
+                                     FontSize="10"
+                                     Text="{Binding ModuleId}"
+                                     TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding QualifiedId}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    Spacing="4">
+                          <Border Padding="7,3"
+                                  Background="{StaticResource InputBrush}"
+                                  CornerRadius="9">
+                            <TextBlock Classes="muted"
+                                       FontSize="10"
+                                       Text="{Binding Version}" />
+                          </Border>
+                          <Button AutomationProperties.Name="Favorite module"
+                                  Classes="favorite"
+                                  HorizontalAlignment="Right"
+                                  Tag="{Binding}"
+                                  Click="OnFavoriteModuleClicked">
+                            <Grid>
+                              <PathIcon Width="16"
+                                        Height="16"
+                                        Data="{StaticResource IconStar}"
+                                        Foreground="{StaticResource TextMutedBrush}"
+                                        IsVisible="{Binding !IsFavorite}" />
+                              <PathIcon Width="16"
+                                        Height="16"
+                                        Data="{StaticResource IconStarFilled}"
+                                        Foreground="{StaticResource FolderIconBrush}"
+                                        IsVisible="{Binding IsFavorite}" />
+                            </Grid>
+                          </Button>
+                        </StackPanel>
+                      </Grid>
+
+                      <TextBlock Grid.Row="1"
+                                 Classes="secondary"
+                                 FontSize="12"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding Description}" />
+
+                      <Grid Grid.Row="2"
+                            ColumnDefinitions="*,*"
+                            ColumnSpacing="7">
+                        <Border Padding="8,6"
+                                Background="{StaticResource InputBrush}"
+                                CornerRadius="5">
+                          <StackPanel>
+                            <TextBlock Classes="eyebrow"
+                                       FontSize="8"
+                                       Text="DESTINATIONS" />
+                            <TextBlock Margin="0,3,0,0"
+                                       FontSize="10"
+                                       Text="{Binding SlotSummary}" />
+                          </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1"
+                                Padding="8,6"
+                                Background="{StaticResource InputBrush}"
+                                CornerRadius="5">
+                          <StackPanel>
+                            <TextBlock Classes="eyebrow"
+                                       FontSize="8"
+                                       Text="DEPENDENCIES" />
+                            <TextBlock Margin="0,3,0,0"
+                                       FontSize="10"
+                                       Text="{Binding DependencySummary}" />
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+
+                      <Grid Grid.Row="3"
+                            ColumnDefinitions="*,Auto">
+                        <ItemsControl VerticalAlignment="Bottom"
+                                      IsVisible="{Binding HasTags}"
+                                      ItemsSource="{Binding TagChips}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TemplateTagViewModel">
+                              <Border Margin="0,0,5,5"
+                                      Padding="6,3"
+                                      Background="{Binding Background}"
+                                      BorderBrush="{StaticResource BorderBrush}"
+                                      BorderThickness="1"
+                                      CornerRadius="4">
+                                <TextBlock FontSize="9"
+                                           Foreground="{Binding Foreground}"
+                                           Text="{Binding Label}" />
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Grid.Column="1"
+                                AutomationProperties.Name="Configure module"
+                                Classes="icon"
+                                Tag="{Binding}"
+                                Click="OnConfigureModuleClicked"
+                                ToolTip.Tip="Configure and preview module">
                           <PathIcon Width="16"
                                     Height="16"
                                     Data="{StaticResource IconArrowRight}"
