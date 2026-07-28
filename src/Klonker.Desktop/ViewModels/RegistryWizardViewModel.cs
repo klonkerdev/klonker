@@ -92,6 +92,8 @@ public sealed partial class RegistryWizardViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsComplete))]
     [NotifyPropertyChangedFor(nameof(CanGoBack))]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(BackCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial RegistryWizardStep Step { get; set; } =
         RegistryWizardStep.Welcome;
 
@@ -104,37 +106,45 @@ public sealed partial class RegistryWizardViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(PrimaryActionText))]
     [NotifyPropertyChangedFor(nameof(ReviewSummary))]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial RegistryWizardMode? Mode { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
     [NotifyPropertyChangedFor(nameof(ReviewSummary))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string WorkspacePath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
     [NotifyPropertyChangedFor(nameof(ReviewSummary))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string OutputPath { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string RegistryId { get; set; } = "local-development";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string DisplayName { get; set; } =
         "Local development templates";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string PublisherId { get; set; } = "my-publisher";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string SigningKeyId { get; set; } = "primary-2026";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial string PrivateKeyPath { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -162,6 +172,8 @@ public sealed partial class RegistryWizardViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanGoBack))]
     [NotifyPropertyChangedFor(nameof(CanGoNext))]
+    [NotifyCanExecuteChangedFor(nameof(BackCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextCommand))]
     public partial bool IsBusy { get; set; }
 
     public System.Collections.ObjectModel.ObservableCollection<
