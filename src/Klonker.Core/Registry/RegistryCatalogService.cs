@@ -10,6 +10,7 @@ namespace Klonker.Core.Registry;
 public sealed class RegistryCatalogService
 {
     private const int MaximumIndexBytes = 5 * 1024 * 1024;
+    private const int MaximumSignatureBytes = 64 * 1024;
     private const long MaximumPackageBytes = 128L * 1024 * 1024;
 
     private static readonly UTF8Encoding StrictUtf8 = new(
@@ -244,6 +245,7 @@ public sealed class RegistryCatalogService
             indexUri,
             cacheRoot,
             offline,
+            source.TrustPolicy,
             cancellationToken).ConfigureAwait(false);
         if (!indexResult.IsSuccess)
         {
@@ -313,17 +315,56 @@ public sealed class RegistryCatalogService
         Uri indexUri,
         string cacheRoot,
         bool offline,
+        RegistryTrustPolicy? trustPolicy,
         CancellationToken cancellationToken)
     {
         var sourceKey = HashText(indexUri.AbsoluteUri);
         var indexDirectory = Path.Combine(cacheRoot, "v1", "indexes");
         var cachedPath = Path.Combine(indexDirectory, $"{sourceKey}.json");
+        var cachedSignaturePath = Path.Combine(
+            indexDirectory,
+            $"{sourceKey}.signature.json");
         Directory.CreateDirectory(indexDirectory);
 
         if (!offline)
         {
             var downloaded = await DownloadIndexAsync(indexUri, cancellationToken)
                 .ConfigureAwait(false);
+            DownloadedSignature? downloadedSignature = null;
+            ImmutableArray<ValidationIssue> signatureIssues = [];
+            if (downloaded.IsSuccess && trustPolicy?.RequireSignature == true)
+            {
+                var signatureUri = GetSignatureUri(indexUri);
+                var signature = await DownloadSignatureAsync(
+                    signatureUri,
+                    cancellationToken).ConfigureAwait(false);
+                if (!signature.IsSuccess)
+                {
+                    downloaded = new OperationResult<DownloadedIndex>(
+                        null,
+                        signature.Issues);
+                }
+                else
+                {
+                    var verified = RegistrySignatureVerifier.Verify(
+                        downloaded.Value!.Bytes,
+                        signature.Value!.Json,
+                        trustPolicy,
+                        signatureUri.AbsoluteUri);
+                    if (!verified.IsSuccess)
+                    {
+                        downloaded = new OperationResult<DownloadedIndex>(
+                            null,
+                            verified.Issues);
+                    }
+                    else
+                    {
+                        downloadedSignature = signature.Value;
+                        signatureIssues = verified.Issues;
+                    }
+                }
+            }
+
             if (downloaded.IsSuccess)
             {
                 var parsed = RegistryIndexLoader.Parse(
@@ -331,13 +372,21 @@ public sealed class RegistryCatalogService
                     indexUri.AbsoluteUri);
                 if (parsed.IsSuccess)
                 {
+                    if (downloadedSignature is not null)
+                    {
+                        await WriteFileAtomicallyAsync(
+                            cachedSignaturePath,
+                            downloadedSignature.Bytes,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+
                     await WriteFileAtomicallyAsync(
                         cachedPath,
                         downloaded.Value.Bytes,
                         cancellationToken).ConfigureAwait(false);
                     return new OperationResult<RemoteIndex>(
                         new RemoteIndex(parsed.Value!, WasCached: false),
-                        parsed.Issues);
+                        parsed.Issues.Concat(signatureIssues));
                 }
 
                 downloaded = new OperationResult<DownloadedIndex>(
@@ -347,7 +396,9 @@ public sealed class RegistryCatalogService
 
             var cached = await TryLoadCachedIndexAsync(
                 cachedPath,
+                cachedSignaturePath,
                 indexUri,
+                trustPolicy,
                 cancellationToken).ConfigureAwait(false);
             if (cached.IsSuccess)
             {
@@ -365,7 +416,9 @@ public sealed class RegistryCatalogService
 
         var offlineIndex = await TryLoadCachedIndexAsync(
             cachedPath,
+            cachedSignaturePath,
             indexUri,
+            trustPolicy,
             cancellationToken).ConfigureAwait(false);
         if (!offlineIndex.IsSuccess)
         {
@@ -415,6 +468,8 @@ public sealed class RegistryCatalogService
             var bytesResult = await ReadLimitedAsync(
                 stream,
                 MaximumIndexBytes,
+                "registry.index_too_large",
+                $"Registry indexes may not exceed {MaximumIndexBytes} bytes.",
                 cancellationToken).ConfigureAwait(false);
             if (!bytesResult.IsSuccess)
             {
@@ -450,9 +505,81 @@ public sealed class RegistryCatalogService
         }
     }
 
+    private async Task<OperationResult<DownloadedSignature>> DownloadSignatureAsync(
+        Uri signatureUri,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, signatureUri);
+            request.Headers.UserAgent.ParseAdd("Klonker/0.1");
+            using var response = await httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode is < HttpStatusCode.OK or >= HttpStatusCode.MultipleChoices)
+            {
+                return Failure<DownloadedSignature>(
+                    "registry.signature_http_status",
+                    $"The registry signature server returned HTTP {(int)response.StatusCode}.");
+            }
+
+            if (response.Content.Headers.ContentLength > MaximumSignatureBytes)
+            {
+                return Failure<DownloadedSignature>(
+                    "registry.signature_too_large",
+                    $"Registry signatures may not exceed {MaximumSignatureBytes} bytes.");
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(
+                cancellationToken).ConfigureAwait(false);
+            var bytesResult = await ReadLimitedAsync(
+                stream,
+                MaximumSignatureBytes,
+                "registry.signature_too_large",
+                $"Registry signatures may not exceed {MaximumSignatureBytes} bytes.",
+                cancellationToken).ConfigureAwait(false);
+            if (!bytesResult.IsSuccess)
+            {
+                return new OperationResult<DownloadedSignature>(
+                    null,
+                    bytesResult.Issues);
+            }
+
+            string json;
+            try
+            {
+                json = StrictUtf8.GetString(bytesResult.Value!.Bytes);
+            }
+            catch (DecoderFallbackException)
+            {
+                return Failure<DownloadedSignature>(
+                    "registry.signature_utf8",
+                    "The registry signature is not valid UTF-8.");
+            }
+
+            return new OperationResult<DownloadedSignature>(
+                new DownloadedSignature(json, bytesResult.Value.Bytes),
+                []);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (
+            exception is HttpRequestException or IOException)
+        {
+            return Failure<DownloadedSignature>(
+                "registry.signature_download_failed",
+                $"The registry signature could not be downloaded: {exception.Message}");
+        }
+    }
+
     private static async Task<OperationResult<RegistryIndex>> TryLoadCachedIndexAsync(
         string cachedPath,
+        string cachedSignaturePath,
         Uri indexUri,
+        RegistryTrustPolicy? trustPolicy,
         CancellationToken cancellationToken)
     {
         if (!File.Exists(cachedPath))
@@ -474,7 +601,48 @@ public sealed class RegistryCatalogService
             }
 
             var json = StrictUtf8.GetString(bytes);
-            return RegistryIndexLoader.Parse(json, indexUri.AbsoluteUri);
+            ImmutableArray<ValidationIssue> signatureIssues = [];
+            if (trustPolicy?.RequireSignature == true)
+            {
+                if (!File.Exists(cachedSignaturePath))
+                {
+                    return Failure<RegistryIndex>(
+                        "registry.signature_cache_missing",
+                        "No cached publisher signature is available for the registry index.");
+                }
+
+                var signatureBytes = await File.ReadAllBytesAsync(
+                    cachedSignaturePath,
+                    cancellationToken).ConfigureAwait(false);
+                if (signatureBytes.Length > MaximumSignatureBytes)
+                {
+                    return Failure<RegistryIndex>(
+                        "registry.signature_cache_invalid",
+                        "The cached registry signature exceeds the allowed size.");
+                }
+
+                var signatureJson = StrictUtf8.GetString(signatureBytes);
+                var verified = RegistrySignatureVerifier.Verify(
+                    bytes,
+                    signatureJson,
+                    trustPolicy,
+                    cachedSignaturePath);
+                if (!verified.IsSuccess)
+                {
+                    return new OperationResult<RegistryIndex>(
+                        null,
+                        verified.Issues);
+                }
+
+                signatureIssues = verified.Issues;
+            }
+
+            var parsed = RegistryIndexLoader.Parse(json, indexUri.AbsoluteUri);
+            return parsed.IsSuccess
+                ? new OperationResult<RegistryIndex>(
+                    parsed.Value,
+                    parsed.Issues.Concat(signatureIssues))
+                : parsed;
         }
         catch (OperationCanceledException)
         {
@@ -767,6 +935,8 @@ public sealed class RegistryCatalogService
     private static async Task<OperationResult<BytePayload>> ReadLimitedAsync(
         Stream stream,
         int maximumBytes,
+        string tooLargeCode,
+        string tooLargeMessage,
         CancellationToken cancellationToken)
     {
         await using var output = new MemoryStream();
@@ -785,8 +955,8 @@ public sealed class RegistryCatalogService
             if (output.Length + read > maximumBytes)
             {
                 return Failure<BytePayload>(
-                    "registry.index_too_large",
-                    $"Registry indexes may not exceed {maximumBytes} bytes.");
+                    tooLargeCode,
+                    tooLargeMessage);
             }
 
             await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken)
@@ -819,6 +989,15 @@ public sealed class RegistryCatalogService
         issues.Select(issue => issue.Message).FirstOrDefault() ??
         "The remote source was unavailable.";
 
+    private static Uri GetSignatureUri(Uri indexUri)
+    {
+        var builder = new UriBuilder(indexUri)
+        {
+            Path = $"{indexUri.AbsolutePath}.sig.json",
+        };
+        return builder.Uri;
+    }
+
     private static ValidationIssue Error(string code, string message) =>
         new(ValidationSeverity.Error, code, message);
 
@@ -832,6 +1011,8 @@ public sealed class RegistryCatalogService
     private sealed record RemoteIndex(RegistryIndex Index, bool WasCached);
 
     private sealed record DownloadedIndex(string Json, byte[] Bytes);
+
+    private sealed record DownloadedSignature(string Json, byte[] Bytes);
 
     private sealed record BytePayload(byte[] Bytes);
 }

@@ -77,13 +77,14 @@ public partial class CatalogView : UserControl
         }
     }
 
-    private static void OnFavoriteVariantClicked(
+    private void OnFavoriteVariantClicked(
         object? sender,
         RoutedEventArgs eventArgs)
     {
-        if (sender is Button { Tag: TemplateListItemViewModel template })
+        if (sender is Button { Tag: TemplateListItemViewModel template } &&
+            DataContext is MainViewModel viewModel)
         {
-            template.IsFavorite = !template.IsFavorite;
+            viewModel.ToggleFavorite(template);
             eventArgs.Handled = true;
         }
     }

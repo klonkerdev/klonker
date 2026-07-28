@@ -15,7 +15,6 @@ language = "cpp"
 source_license = "MIT"
 logo = "template-logo.png"
 tags = ["cli", "native", "starter", "cpp"]
-favorite = true
 
 [[prerequisites]]
 id = "cmake"

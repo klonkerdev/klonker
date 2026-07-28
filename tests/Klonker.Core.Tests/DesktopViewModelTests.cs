@@ -248,16 +248,25 @@ public sealed class DesktopViewModelTests
     }
 
     [Fact]
-    public void TemplateFavorite_CanBeChangedForCurrentCatalogSession()
+    public void TemplateFavorite_IsPersistedByLocalAppStore()
     {
-        var viewModel = CreateLoadedViewModel();
-        var template = Assert.IsType<TemplateListItemViewModel>(
-            viewModel.SelectedTemplate);
-
-        template.IsFavorite = false;
+        using var temporaryDirectory = new TemporaryDirectory();
+        var store = new FavoriteStore(temporaryDirectory.Path);
+        using var viewModel = CreateLoadedViewModel(favoriteStore: store);
+        var template = Assert.IsType<TemplateListItemViewModel>(viewModel.SelectedTemplate);
 
         Assert.False(template.IsFavorite);
-        Assert.True(template.Package.Manifest.IsFavorite);
+        viewModel.ToggleFavorite(template);
+
+        Assert.True(template.IsFavorite);
+        using var reloaded = CreateLoadedViewModel(favoriteStore: store);
+        Assert.True(reloaded.SelectedTemplate?.IsFavorite);
+        Assert.DoesNotContain(
+            "favorite",
+            File.ReadAllText(Path.Combine(
+                RepositoryPaths.SamplePackage,
+                "template.toml")),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -449,6 +458,35 @@ public sealed class DesktopViewModelTests
     }
 
     [Fact]
+    public async Task PrerequisiteProbes_RunOnlyAfterLocalConsentAndExplicitCommand()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var settingsStore = new AppSettingsStore(temporaryDirectory.Path);
+        var saved = settingsStore.Save(new AppSettingsSnapshot(
+            settingsStore.StoragePath,
+            AppAppearance.System,
+            DiagnosticLoggingEnabled: false,
+            DiagnosticLogLevel.Information,
+            PrerequisiteProbesEnabled: true,
+            RegistryDownloadTimeoutSeconds: 20));
+        Assert.True(saved.IsSuccess);
+        var probeService = new StubPrerequisiteProbeService();
+        using var viewModel = CreateLoadedViewModel(
+            appSettingsStore: settingsStore,
+            prerequisiteProbeService: probeService);
+
+        Assert.True(viewModel.CanProbePrerequisites);
+        Assert.Empty(probeService.ProbedIds);
+
+        await viewModel.ProbePrerequisitesCommand.ExecuteAsync(null);
+
+        Assert.Equal(["cmake", "cpp_toolchain"], probeService.ProbedIds);
+        Assert.All(
+            viewModel.Prerequisites,
+            prerequisite => Assert.True(prerequisite.ProbeFound));
+    }
+
+    [Fact]
     public async Task Preview_NavigationSelectsAdjacentFilesAndControlsExpansion()
     {
         var viewModel = CreateLoadedViewModel();
@@ -534,7 +572,10 @@ public sealed class DesktopViewModelTests
         IProjectGenerationService? generationService = null,
         IDestinationPicker? destinationPicker = null,
         bool navigateToVariants = true,
-        bool includeSixVariants = false)
+        bool includeSixVariants = false,
+        IFavoriteStore? favoriteStore = null,
+        AppSettingsStore? appSettingsStore = null,
+        IPrerequisiteProbeService? prerequisiteProbeService = null)
     {
         var packageResult = TemplatePackageLoader.Load(RepositoryPaths.SamplePackage);
         Assert.True(packageResult.IsSuccess);
@@ -554,7 +595,10 @@ public sealed class DesktopViewModelTests
         var viewModel = new MainViewModel(
             catalog,
             generationService,
-            destinationPicker);
+            destinationPicker,
+            favoriteStore,
+            appSettingsStore,
+            prerequisiteProbeService);
         viewModel.Load();
         if (navigateToVariants)
         {
@@ -597,7 +641,6 @@ public sealed class DesktopViewModelTests
                         $"A {variant.Item2} C++ command-line application using {variant.Item3}.",
                     TargetOs = variant.Item2,
                     BuildSystem = variant.Item3,
-                    IsFavorite = variant.Item1 == "windows-cmake",
                 };
                 var package = sourcePackage with
                 {
@@ -688,5 +731,21 @@ public sealed class DesktopViewModelTests
                         "A controlled test failure occurred."),
                 ],
                 new IOException("Disk unavailable.")));
+    }
+
+    private sealed class StubPrerequisiteProbeService : IPrerequisiteProbeService
+    {
+        public List<string> ProbedIds { get; } = [];
+
+        public Task<PrerequisiteProbeResult> ProbeAsync(
+            string prerequisiteId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ProbedIds.Add(prerequisiteId);
+            return Task.FromResult(new PrerequisiteProbeResult(
+                PrerequisiteProbeState.Found,
+                $"Found {prerequisiteId}."));
+        }
     }
 }

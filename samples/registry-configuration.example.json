@@ -12,7 +12,17 @@
       "name": "Klonker official templates",
       "kind": "remote",
       "location": "https://raw.githubusercontent.com/klonkerdev/registry/main/dist/registry.json",
-      "enabled": true
+      "enabled": true,
+      "require_signature": true,
+      "publisher_id": "klonker.official",
+      "trusted_keys": [
+        {
+          "key_id": "2026-primary",
+          "algorithm": "rsa-pkcs1-sha256",
+          "public_key_spki": "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0kmjbeOoLw9Q1ZdbOxhJ9SG8fMkGrDUv1lBuJBPvjGqUFgE458CFI1YUnu4bmuehAswaNpapnWebGwTpHXmX9+v+xwjhSprymWfwJ4hL4cj3kz/3vllOoOb3Y16KMtFzr22xP1PGu5Sy/ZX6WMfcM+r3f3ugqQuMerCNZ5XHdZ0D0BEQhWN0k4MeO7VbFEFKi+QMcLlNXlioO1QcEqPAFHFExLr/Q65StQyMIQV9LSE95+bshCV0OtfJtbE966Gu8ggTPzVOxHvG045tXA9zxiI6grgL7n4NArDbcZt4CS7ARqK+VgI/qeLoOjObGKJGheEzRgo7N438SejyXwCTd6x/1ep6E3J2/tYL5aMqyJFQmsy61KSsx9qvESNlDxm7sfkE8eHi5TVXRv9ecsex634lb9CZkZ2rQwAvZD2rCT9xF91RyC4v1lFB4jCnpAs4Ommg9kj/Q/R4zzGiNq/NRIPtUfrZgNHgR8cGYBxxxzHVnsq24OuIHJhzhaaJ7Q3lAgMBAAE=",
+          "revoked": false
+        }
+      ]
     }
   ]
 }

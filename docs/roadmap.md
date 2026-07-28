@@ -31,8 +31,8 @@
 - [x] retain independent expansion state for each directory node
 - [x] select a generated tree file to inspect its rendered text
 - [x] show host-controlled syntax highlighting for known preview file types
-- [x] support package logos, custom tags, and initial favorite metadata
-- [x] provide interactive favorite, hover, and selected variant-card states
+- [x] support package logos and custom tags
+- [x] provide persistent app-local favorite, hover, and selected card states
 - [x] filter by the union of custom manifest tags across the active catalog
 - [x] preview copied known-text sources through strict UTF-8 decoding
 - [x] present loading, validation, and rendering failures without crashing
@@ -53,23 +53,25 @@
 - [x] prepare the standalone `klonkerdev/registry` source, CI, and distribution
 - [x] discover hierarchical namespace/package/variant registry sources
 - [x] publish language metadata in runtime manifests and registry indexes
-- [x] prepare six `gof2.modapi` Lua variants, including a modular all-in-one
-  showcase, from the upstream ModAPI examples
-- [x] ship LuaLS autocomplete definitions and VS Code workspace setup with
-  every `gof2.modapi` variant
+- [x] publish multiple independently versioned native and scripting template
+  families through the discovered registry hierarchy
 - [x] add a validated self-contained Windows x64 nightly release workflow
+- [x] add an in-app registry/application settings editor
+- [x] persist user favorites outside template manifests
+- [x] verify detached registry signatures with publisher trust and key
+  rotation/revocation
+- [x] protect the registry `main` branch with required generic validation and
+  code-owner review
+- [x] add active, consented, read-only prerequisite probes without installing
+  or executing tools
+- [x] generate repository Markdown and static-site JSON catalogs from
+  discovered registry sources
 
 ## Next milestones
 
-- [ ] add an in-app registry source/settings editor
-- [ ] persist user favorites outside template manifests
-- [ ] add registry signatures, publisher trust, and key rotation
 - [x] publish the prepared `klonkerdev/registry` GitHub repository
 - [x] validate a clean online download and zero-network cached replay
-- [ ] protect the registry `main` branch with required validation and review
 - [x] add Windows/Linux CMake, GNU Make, and xmake C++ CLI variants
-- [ ] push the prepared GOF2 ModAPI source and regenerated distribution
-- [ ] add active, consented prerequisite probes without installing tools
 
 ## Deferred
 

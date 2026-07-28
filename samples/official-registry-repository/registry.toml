@@ -2,3 +2,5 @@ schema_version = 0
 
 registry_id = "klonker.official"
 display_name = "Klonker official templates"
+publisher_id = "klonker.official"
+signing_key_id = "2026-primary"

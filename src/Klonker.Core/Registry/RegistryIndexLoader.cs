@@ -60,9 +60,18 @@ public static partial class RegistryIndexLoader
 
         var entries = ImmutableArray.CreateBuilder<RegistryTemplateEntry>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
-        for (var index = 0; index < dto.Templates.Count; index++)
+        if (dto.Templates is null)
         {
-            var item = dto.Templates[index];
+            issues.Add(Error(
+                "registry.templates_required",
+                "Registry property 'templates' must be an array.",
+                sourceDescription));
+        }
+
+        var templates = dto.Templates ?? [];
+        for (var index = 0; index < templates.Count; index++)
+        {
+            var item = templates[index];
             var context = $"templates[{index}]";
             ValidateRequired(item.FamilyId, $"{context}.family_id", sourceDescription, issues);
             ValidateRequired(item.VariantId, $"{context}.variant_id", sourceDescription, issues);
@@ -217,7 +226,7 @@ public static partial class RegistryIndexLoader
         public string? DisplayName { get; init; }
 
         [JsonPropertyName("templates")]
-        public List<RegistryTemplateDto> Templates { get; init; } = [];
+        public List<RegistryTemplateDto>? Templates { get; init; } = [];
     }
 
     private sealed class RegistryTemplateDto

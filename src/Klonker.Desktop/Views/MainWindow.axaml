@@ -68,6 +68,14 @@
         <StackPanel Grid.Column="2"
                     Orientation="Horizontal"
                     Spacing="1">
+          <Button AutomationProperties.Name="Settings"
+                  Classes="icon"
+                  Click="OnSettingsClicked"
+                  ToolTip.Tip="Settings">
+            <PathIcon Width="15"
+                      Height="15"
+                      Data="{StaticResource IconSettings}" />
+          </Button>
           <Button AutomationProperties.Name="Minimize"
                   Classes="icon"
                   Click="OnMinimizeClicked"

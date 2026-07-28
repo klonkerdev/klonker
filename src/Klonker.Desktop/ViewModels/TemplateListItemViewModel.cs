@@ -6,10 +6,12 @@ namespace Klonker.Desktop.ViewModels;
 
 public sealed partial class TemplateListItemViewModel : ViewModelBase
 {
-    public TemplateListItemViewModel(RegistryTemplatePackage template)
+    public TemplateListItemViewModel(
+        RegistryTemplatePackage template,
+        bool isFavorite = false)
     {
         Template = template;
-        IsFavorite = Package.Manifest.IsFavorite;
+        IsFavorite = isFavorite;
         TagChips = Tags
             .Select(tag => new TemplateTagViewModel(tag))
             .ToArray();
@@ -24,6 +26,9 @@ public sealed partial class TemplateListItemViewModel : ViewModelBase
     public string RegistryName => Template.RegistryDisplayName;
 
     public string QualifiedId => Template.QualifiedId;
+
+    public string FavoriteIdentity =>
+        $"{Template.RegistryId}:{Template.Entry.TemplateId}";
 
     public string Name => Package.Manifest.Name;
 

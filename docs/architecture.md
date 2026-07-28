@@ -13,8 +13,10 @@ CommunityToolkit view models, user registry configuration, native folder
 selection, and desktop-specific service adapters. Repository sample lookup is
 isolated in `DevelopmentSampleRegistryLocator`; no repository path exists in
 Core. `RegistryConfigurationStore` owns
-`%LOCALAPPDATA%\Klonker\registries.json`, while `ConfiguredTemplateCatalog`
-passes its local/remote sources and cache root into Core.
+`%LOCALAPPDATA%\Klonker\registries.json`; `FavoriteStore` and
+`AppSettingsStore` separately own `favorites.json` and `settings.json`.
+`ConfiguredTemplateCatalog` passes local/remote sources, publisher trust, and
+the cache root into Core.
 
 Desktop uses separate `CatalogView` and `ConfigurationView` user controls.
 `MainWindow` owns only custom window chrome and screen hosting. `MainViewModel`
@@ -41,8 +43,9 @@ host-owned lexer colors C++, Lua, CMake, Markdown, and common configuration
 syntax without evaluating input, loading extensions, or executing generated
 code.
 Template logos are normalized and validated in Core, then decoded to a bounded
-card image by Desktop. Manifest tags and the default favorite state are
-presentation metadata only. Custom tags are kept separate from target,
+card image by Desktop. Manifest tags are presentation metadata; favorites
+are keyed by registry/template identity only in app-local state. Custom tags
+are kept separate from target,
 language, variant, and build metadata; the catalog collects their union for a
 dedicated filter and assigns each tag a stable color. Host-owned vector marks
 identify the known Windows/Linux platforms and CMake/GNU Make/xmake build
@@ -63,14 +66,20 @@ behavior and view models without creating native windows.
 Registry version 1 requires SHA-256 and size for every package. Core qualifies
 template identity as `<registry-id>:<template-id>@<version>`. Local editable
 packages use a canonical directory digest. Remote packages are HTTPS ZIP
-artifacts verified before extraction. Cache directories use SHA-256-derived
-opaque keys rather than registry-controlled names.
+artifacts verified before extraction. Sources that require publisher trust
+download a bounded detached signature, verify the exact index bytes against a
+locally pinned active RSA key, and only then parse/cache the index. Trust can
+carry multiple active keys during rotation and revoked keys remain rejected.
+Cache directories use SHA-256-derived opaque keys rather than
+registry-controlled names.
 
 ```mermaid
 flowchart LR
     Config[user registries.json] --> DesktopService[Desktop catalog service]
     Local[local registry.json] --> RegistryCore[Core registry service]
     Remote[HTTPS registry.json] --> RegistryCore
+    Signature[detached publisher signature] --> RegistryCore
+    Trust[local publisher keys] --> RegistryCore
     RegistryCore --> Cache[validated index/package cache]
     RegistryCore --> DesktopService
     DesktopService --> Families[package groups]
@@ -133,15 +142,20 @@ destination is rejected and existing files are never overwritten.
 - Version zero never follows symbolic links/reparse points or runs processes.
 - Generation is all-or-nothing at the final destination boundary.
 - A remote index is cached only after schema validation.
+- A signature-required remote index is cached only after publisher
+  verification with a non-revoked local key.
 - A remote package is extracted only after exact size and SHA-256 validation.
 - Offline mode performs no HTTP requests.
 - ZIP extraction repeats path normalization and containment checks and rejects
   links, collisions, and expansion limits.
 
+Desktop's settings window owns registry editing, appearance, opt-in
+diagnostics, prerequisite-probe consent, and narrowly scoped local-data reset
+actions. `WindowsPrerequisiteProbeService` recognizes only host-owned probe
+IDs, inspects PATH/known folders after an explicit click, and never launches a
+process or installs software.
+
 ## Planned architecture
 
-Signature/trust policy, active prerequisite probes, a registry-management UI,
-WSL destinations, and optional modules are planned. Checksums currently provide
-download integrity but not publisher authentication. Registry-qualified
-identity permits multiple sources without silently merging colliding template
-IDs.
+WSL destinations and optional modules are planned. Registry-qualified identity
+permits multiple sources without silently merging colliding template IDs.

@@ -80,18 +80,31 @@ The configuration format is:
       "name": "Klonker official templates",
       "kind": "remote",
       "location": "https://raw.githubusercontent.com/klonkerdev/registry/main/dist/registry.json",
-      "enabled": true
+      "enabled": true,
+      "require_signature": true,
+      "publisher_id": "klonker.official",
+      "trusted_keys": [
+        {
+          "key_id": "2026-primary",
+          "algorithm": "rsa-pkcs1-sha256",
+          "public_key_spki": "<Base64 SubjectPublicKeyInfo>",
+          "revoked": false
+        }
+      ]
     }
   ]
 }
 ```
 
-Relative local locations resolve beside `registries.json`. The application
-creates this file on first launch and seeds the canonical official HTTPS
-source. Repository development also adds the checked-in sample registry.
+Relative local locations resolve beside `registries.json`. Signature trust is
+valid only for remote sources. A required signature needs a publisher ID and
+at least one non-revoked RSA key; several keys may coexist during rotation.
+The application creates this file on first launch and seeds the canonical
+official HTTPS source and pinned public key. Repository development also adds
+the checked-in sample registry.
 `KLONKER_OFFICIAL_REGISTRY_URL` can override the official URL before the first
-launch for staging tests. Once created, the JSON file is authoritative and may
-be edited to add, disable, or remove sources.
+launch for staging tests. Once created, use the in-app Settings window to add,
+disable, remove, or rotate sources and keys.
 
 ## Cache and offline behavior
 
@@ -100,6 +113,7 @@ The cache root is:
 ```text
 %LOCALAPPDATA%\Klonker\cache\v1\
   indexes\<sha256-of-index-url>.json
+  indexes\<sha256-of-index-url>.signature.json
   packages\<sha256-of-qualified-package-identity>\
     package.zip
     package\
@@ -131,5 +145,24 @@ large entries, excessive expanded size, and excessive entry count. Every
 extracted path receives a final containment check.
 
 SHA-256 detects corruption and a server returning bytes different from its
-index. It does not establish publisher trust. Cryptographic signatures and
-key-rotation policy remain future work.
+index. For a signature-required source, Klonker also retrieves
+`<index-url>.sig.json`, verifies its declared index hash and
+`rsa-pkcs1-sha256` signature against the source's app-local publisher/key
+pins, and caches the index only after verification. Multiple active keys allow
+rotation; locally revoked keys are never accepted.
+
+The detached signature document uses schema version zero:
+
+```json
+{
+  "schema_version": 0,
+  "publisher_id": "example.publisher",
+  "key_id": "2026-primary",
+  "algorithm": "rsa-pkcs1-sha256",
+  "index_sha256": "<64 lowercase hexadecimal characters>",
+  "signature": "<Base64 RSA signature>"
+}
+```
+
+The public key is a Base64 SPKI value stored in local registry configuration,
+not trusted merely because the registry publishes a copy of it.

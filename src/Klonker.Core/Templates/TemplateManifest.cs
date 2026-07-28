@@ -16,6 +16,5 @@ public sealed record TemplateManifest(
     ImmutableArray<TemplateParameterDefinition> Parameters,
     string? Logo = null,
     ImmutableArray<string> Tags = default,
-    bool IsFavorite = false,
     ImmutableArray<TemplatePrerequisite> Prerequisites = default,
     string Language = "unknown");

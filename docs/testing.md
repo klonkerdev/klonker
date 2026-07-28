@@ -13,16 +13,18 @@
 - **Registry integration:** in-memory HTTP handlers and temporary caches
   validate schema/version behavior, qualified identity, directory digests,
   package SHA-256/size, safe ZIP extraction, online caching, cached-index
-  fallback, and zero-network offline reuse.
+  fallback, detached publisher signatures, active/revoked trust keys, and
+  zero-network offline reuse.
 - **Desktop logic:** the single test project references Desktop and exercises
   catalog failure, registry-qualified package grouping, package/variant
   navigation, filters, platform/build-system presentation, tree construction,
   independent folder expansion, semantic file-icon classification, tree
-  selection, manifest presentation metadata, syntax tokenization, favorites,
+  selection, manifest presentation metadata, syntax tokenization, app-local
+  favorite persistence, settings,
   language presentation, no-build-system variants, custom-tag
   filtering/color assignment, strict copied C++/Lua source decoding, and
   preview behavior, destination picking, explicit generation confirmation,
-  structured diagnostics, prerequisites, and preview navigation without
+  structured diagnostics, consented prerequisite probes, and preview navigation without
   launching Avalonia windows.
 
 Run:
@@ -58,6 +60,11 @@ that no output escapes the destination. Registry archive tests must include
 traversal, case collisions, file/directory collisions, links where practical,
 checksum mismatch, and offline cache misses.
 
+Repository validation enumerates sample registry indexes, their entries, and
+all referenced package manifests. A new data-only package or variant must pass
+the same generic identity/path/integrity checks and does not require a
+hardcoded test branch.
+
 ## UI policy
 
 Prefer headless view-model tests for catalog/configuration/preview state.
@@ -72,5 +79,7 @@ does not collapse another, card hover/selection/favorite states are visible,
 selecting a tree file changes syntax-highlighted content, preview navigation
 works, destination selection opens, confirmation precedes generation, a
 successful result is visible, custom window buttons work, and the window
-remains usable at its minimum size.
+remains usable at its minimum size. Open Settings and smoke-test registry row
+editing, theme switching, publisher key rows, probe consent, and the scoped
+cache/preferences reset actions.
 Native-window automation is deferred until it provides stable value.

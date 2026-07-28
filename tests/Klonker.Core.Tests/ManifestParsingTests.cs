@@ -104,7 +104,7 @@ public sealed class ManifestParsingTests
     }
 
     [Fact]
-    public void Load_OptionalPresentationMetadata_ReturnsLogoTagsAndFavorite()
+    public void Load_OptionalPresentationMetadata_ReturnsLogoAndTags()
     {
         var manifest = TestManifests.Valid.Replace(
             "source_license = \"MIT\"",
@@ -112,7 +112,6 @@ public sealed class ManifestParsingTests
             source_license = "MIT"
             logo = "template-logo.png"
             tags = ["graphics", "gamedev", "gof2", "modding"]
-            favorite = true
             """,
             StringComparison.Ordinal);
         using var package = new TestPackage(manifest);
@@ -128,7 +127,26 @@ public sealed class ManifestParsingTests
         Assert.Equal(
             ["graphics", "gamedev", "gof2", "modding"],
             result.Value.Manifest.Tags.ToArray());
-        Assert.True(result.Value.Manifest.IsFavorite);
+    }
+
+    [Fact]
+    public void Load_FavoriteMetadata_IsRejectedAsAppLocalState()
+    {
+        var manifest = TestManifests.Valid.Replace(
+            "source_license = \"MIT\"",
+            """
+            source_license = "MIT"
+            favorite = true
+            """,
+            StringComparison.Ordinal);
+        using var package = new TestPackage(manifest);
+
+        var result = TemplatePackageLoader.Load(package.RootPath);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "manifest.favorite_forbidden");
     }
 
     [Fact]
@@ -220,17 +238,22 @@ public sealed class ManifestParsingTests
     }
 
     [Fact]
-    public void Load_SampleRegistry_ReturnsSampleIdentity()
+    public void Load_SampleRegistry_ResolvesEveryDiscoveredPackage()
     {
         var result = LocalRegistryLoader.Load(RepositoryPaths.SampleRegistry);
 
         Assert.True(result.IsSuccess);
-        var entry = Assert.Single(result.Value!.Templates);
-        Assert.Equal("std.cpp-cli.windows-cmake", entry.TemplateId);
-        Assert.Equal(RegistryIndexLoader.SupportedSchemaVersion, result.Value.SchemaVersion);
-        Assert.Equal(64, entry.PackageSha256.Length);
-        Assert.True(entry.PackageSizeBytes > 0);
-        Assert.True(
-            LocalRegistryLoader.ResolvePackagePath(result.Value, entry).IsSuccess);
+        var registry = Assert.IsType<LocalRegistryCatalog>(result.Value);
+        Assert.Equal(RegistryIndexLoader.SupportedSchemaVersion, registry.SchemaVersion);
+        Assert.NotEmpty(registry.Templates);
+        Assert.All(
+            registry.Templates,
+            entry =>
+            {
+                Assert.Equal(64, entry.PackageSha256.Length);
+                Assert.True(entry.PackageSizeBytes > 0);
+                Assert.True(
+                    LocalRegistryLoader.ResolvePackagePath(registry, entry).IsSuccess);
+            });
     }
 }

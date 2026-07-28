@@ -12,7 +12,9 @@ The first generation and registry vertical slices are implemented:
 - registry schema version 1 qualifies identities by registry and requires
   package SHA-256/size metadata;
 - `%LOCALAPPDATA%\Klonker\registries.json` configures local and HTTPS remote
-  sources outside the repository;
+  sources, publisher trust, and rotated/revoked keys outside the repository;
+- the official registry index is verified against an app-pinned detached
+  RSA signature before it can enter the validated cache;
 - validated remote indexes and packages use a transactional local cache with
   explicit offline mode and cached-index fallback;
 - Core parses and validates the version-zero TOML manifest;
@@ -32,7 +34,8 @@ The first generation and registry vertical slices are implemented:
 - the configuration screen provides generated parameter controls, the reusable
   project-tree control, and selectable rendered text;
 - optional package logos and arbitrary descriptive tags appear on package and
-  variant cards, while session favorite toggles remain variant-specific;
+  variant cards, while favorites persist only in the app-local
+  `%LOCALAPPDATA%\Klonker\favorites.json` store;
 - custom tags use a distinct colored row and catalog filter; platform,
   language, and build metadata remain separate;
 - generated C++, Lua, CMake, Markdown, and configuration text uses a
@@ -41,7 +44,11 @@ The first generation and registry vertical slices are implemented:
   and expand/collapse-all controls;
 - copied known-text source files are strictly decoded as UTF-8 for preview
   while remaining byte-for-byte copies in the generation plan;
-- manifests can declare display-only after-generation prerequisites;
+- manifests can declare after-generation prerequisites; explicitly consented
+  checks inspect host-owned PATH/known-folder probes without installing tools
+  or executing template commands;
+- an in-app settings window edits registry sources and publisher keys,
+  appearance, diagnostics, system behavior, and local cache/preferences;
 - Desktop provides a destination field/native folder picker, explicit
   confirmation, transactional Generate action, cancellation, and structured
   success/failure details;
@@ -54,7 +61,7 @@ The first generation and registry vertical slices are implemented:
 
 Version one is a project generator. It will discover templates from configured
 registries, cache packages for offline use, show independently versioned
-variants, validate configuration and known prerequisites, preview output, and
+variants, validate configuration and consented known prerequisites, preview output, and
 generate into a new or empty destination. Windows destinations come first;
 generation inside a selected WSL distribution is planned.
 
@@ -108,7 +115,8 @@ To build deterministic ZIP/index artifacts for a separate registry repository:
 ```powershell
 .\eng\pack-registry.ps1 `
   -SourceRoot D:\repos\klonker-registry `
-  -OutputRoot D:\repos\klonker-registry-dist
+  -OutputRoot D:\repos\klonker-registry-dist `
+  -SigningKeyPath D:\secure\publisher-key.pem
 ```
 
 The source root uses `registry.toml` plus discovered
@@ -130,24 +138,16 @@ docs/                    Product and engineering documentation
 eng/                     Validation, run, clean, and registry packaging scripts
 ```
 
-## Development sample
+## Development and official catalogs
 
-`samples/local-registry` contains
-`std.cpp-cli.windows-cmake`, a dependency-free C++ command-line starter.
-It generates `CMakeLists.txt`, a project README, `src/main.cpp`, and a modest
-argument parser supporting `--help`, `-h`, `--version`, unknown-option errors,
-and positional arguments. The checked-in sample is test and development data;
-the production catalog is maintained separately in the
-[`klonkerdev/registry`](https://github.com/klonkerdev/registry) repository and
-currently publishes Windows/Linux variants for CMake, GNU Make, and xmake.
-The prepared registry source also contains six `gof2.modapi` Lua starters for
-events, ImGui menus, rendering hooks, campaign missions, custom content, and a
-modular all-in-one showcase;
-they use `build_system = "none"` and are published when the registry
-repository's updated `dist/` is pushed. New Klonker configurations use the
-published raw GitHub index directly. Every GOF2 starter includes LuaLS API
-definitions, Visual Studio Code recommendations/settings, and portable
-`.luarc.json` configuration for ModAPI-aware completion and diagnostics.
+Checked-in sample registries are development/test data. Validation discovers
+every sample `registry.json` and verifies all referenced package identities,
+paths, checksums, and sizes without naming a particular template in the
+pipeline. The production catalog is maintained separately in
+[`klonkerdev/registry`](https://github.com/klonkerdev/registry); its
+[generated Markdown catalog](https://github.com/klonkerdev/registry/blob/main/dist/catalog.md)
+and `catalog.json` are rebuilt from package/variant manifests, so this README
+does not need a handwritten package list.
 
 ## Security
 
@@ -159,8 +159,9 @@ or random access. Manifests cannot request generator commands, setup scripts,
 or lifecycle hooks. A template may contain source-code files such as Lua, but
 Klonker treats them as data and never executes them. Remote registries are
 HTTPS-only; packages are size-limited, SHA-256 verified, and extracted through
-the same Windows path-safety boundary. Checksums provide integrity, not
-publisher authentication.
+the same Windows path-safety boundary. A detached signature authenticates the
+exact index bytes against app-local publisher trust. Multiple pinned keys and
+explicit revoked-key records support publisher key rotation.
 
 ## Documentation
 
@@ -176,8 +177,7 @@ publisher authentication.
 
 ## Short roadmap
 
-Next, push the prepared GOF2 registry artifacts, add persistent favorite
-preferences and registry management UI, and define a signed-registry trust
-policy. WSL generation, modules, and agent integrations remain deferred.
+Next work focuses on conflict/version policy and broader template coverage.
+WSL generation, modules, and agent integrations remain deferred.
 
 Klonker is licensed under the [MIT License](LICENSE).

@@ -1,8 +1,11 @@
+using System.Collections.Immutable;
 using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Klonker.Core.Registry;
+using Klonker.Core.Templates;
 using Klonker.Core.Tests.TestSupport;
 
 namespace Klonker.Core.Tests;
@@ -58,6 +61,26 @@ public sealed class RegistryCatalogTests
             result.Issues,
             issue => issue.Code == "registry.property_required" &&
                      issue.Message.Contains("package_sha256", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Index_NullTemplateArray_IsRejectedWithoutThrowing()
+    {
+        var json = """
+            {
+              "schema_version": 1,
+              "registry_id": "tests.remote",
+              "display_name": "Test templates",
+              "templates": null
+            }
+            """;
+
+        var result = RegistryIndexLoader.Parse(json, "test registry");
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "registry.templates_required");
     }
 
     [Fact]
@@ -146,10 +169,14 @@ public sealed class RegistryCatalogTests
         Assert.True(
             result.IsSuccess,
             string.Join(Environment.NewLine, result.Issues.Select(issue => issue.Message)));
-        var template = Assert.Single(result.Value!.Templates);
+        var sampleManifest = TemplatePackageLoader.Load(
+            RepositoryPaths.SamplePackage).Value!.Manifest;
+        var template = Assert.Single(
+            result.Value!.Templates,
+            item => item.Entry.TemplateId == sampleManifest.Id);
         Assert.Equal("klonker.samples.local", template.RegistryId);
         Assert.Equal(
-            "klonker.samples.local:std.cpp-cli.windows-cmake@0.1.0",
+            $"klonker.samples.local:{sampleManifest.Id}@{sampleManifest.Version}",
             template.QualifiedId);
         Assert.Equal(template.RegistryId, template.Package.RegistryId);
     }
@@ -213,6 +240,101 @@ public sealed class RegistryCatalogTests
         Assert.Contains(
             fallback.Issues,
             issue => issue.Code == "registry.index_cache_fallback");
+    }
+
+    [Fact]
+    public async Task RemoteRegistry_RequiredPublisherSignatureIsVerifiedAndCached()
+    {
+        using var fixture = new RemoteRegistryFixture(signed: true);
+        using var onlineClient = new HttpClient(
+            new MappedHttpHandler(fixture.Responses));
+        var service = new RegistryCatalogService(onlineClient);
+
+        var online = await service.LoadAsync(
+            [fixture.Source],
+            new RegistryCatalogOptions(fixture.CacheRoot));
+
+        Assert.True(
+            online.IsSuccess,
+            string.Join(Environment.NewLine, online.Issues.Select(issue => issue.Message)));
+        Assert.Contains(
+            online.Issues,
+            issue => issue.Code == "registry.signature_verified");
+
+        using var offlineClient = new HttpClient(new RejectingHttpHandler());
+        var offlineService = new RegistryCatalogService(offlineClient);
+        var offline = await offlineService.LoadAsync(
+            [fixture.Source],
+            new RegistryCatalogOptions(fixture.CacheRoot, Offline: true));
+
+        Assert.True(offline.IsSuccess);
+        Assert.Contains(
+            offline.Issues,
+            issue => issue.Code == "registry.signature_verified");
+    }
+
+    [Fact]
+    public async Task RemoteRegistry_RequiredPublisherSignatureCannotBeOmitted()
+    {
+        using var fixture = new RemoteRegistryFixture(signed: true);
+        var unsignedResponses = fixture.Responses
+            .Where(item => !item.Key.EndsWith(
+                ".sig.json",
+                StringComparison.Ordinal))
+            .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+        using var client = new HttpClient(new MappedHttpHandler(unsignedResponses));
+        var service = new RegistryCatalogService(client);
+
+        var result = await service.LoadAsync(
+            [fixture.Source],
+            new RegistryCatalogOptions(fixture.CacheRoot));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "registry.signature_http_status");
+    }
+
+    [Fact]
+    public void RegistrySignature_TamperingAndRevokedKeysAreRejected()
+    {
+        using var rsa = RSA.Create(2048);
+        var indexBytes = Encoding.UTF8.GetBytes("""{"schema_version":1}""");
+        var key = new RegistryTrustedKey(
+            "test-2026",
+            RegistrySignatureVerifier.RsaPkcs1Sha256,
+            Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo()));
+        var signature = CreateSignatureJson(
+            indexBytes,
+            rsa,
+            "tests.publisher",
+            key.KeyId);
+        var policy = new RegistryTrustPolicy(
+            "tests.publisher",
+            ImmutableArray.Create(key));
+
+        var tampered = RegistrySignatureVerifier.Verify(
+            Encoding.UTF8.GetBytes("""{"schema_version":2}"""),
+            signature,
+            policy,
+            "test signature");
+        var revoked = RegistrySignatureVerifier.Verify(
+            indexBytes,
+            signature,
+            policy with
+            {
+                Keys = ImmutableArray.Create(key with { Revoked = true }),
+            },
+            "test signature");
+
+        Assert.False(tampered.IsSuccess);
+        Assert.Contains(
+            tampered.Issues,
+            issue => issue.Code == "registry.signature_hash_mismatch");
+        Assert.False(revoked.IsSuccess);
+        Assert.Contains(
+            revoked.Issues,
+            issue => issue.Code == "registry.publisher_key_revoked");
     }
 
     [Fact]
@@ -302,7 +424,9 @@ public sealed class RegistryCatalogTests
         private readonly TestPackage package;
         private readonly TemporaryDirectory temporaryDirectory = new();
 
-        public RemoteRegistryFixture(string? checksumOverride = null)
+        public RemoteRegistryFixture(
+            string? checksumOverride = null,
+            bool signed = false)
         {
             package = new TestPackage(
                 TestManifests.Valid,
@@ -322,17 +446,44 @@ public sealed class RegistryCatalogTests
                 Convert.ToHexStringLower(SHA256.HashData(archiveBytes));
             var indexJson = CreateIndexJson(checksum, archiveBytes.LongLength);
 
+            RegistryTrustPolicy? trustPolicy = null;
+            byte[]? signatureBytes = null;
+            if (signed)
+            {
+                using var rsa = RSA.Create(2048);
+                const string keyId = "tests-2026";
+                trustPolicy = new RegistryTrustPolicy(
+                    "tests.publisher",
+                    ImmutableArray.Create(new RegistryTrustedKey(
+                        keyId,
+                        RegistrySignatureVerifier.RsaPkcs1Sha256,
+                        Convert.ToBase64String(
+                            rsa.ExportSubjectPublicKeyInfo()))));
+                signatureBytes = Encoding.UTF8.GetBytes(CreateSignatureJson(
+                    Encoding.UTF8.GetBytes(indexJson),
+                    rsa,
+                    trustPolicy.PublisherId,
+                    keyId));
+            }
+
             Source = new RegistrySource(
                 "Remote tests",
                 RegistrySourceKind.Remote,
-                "https://registry.example/registry.json");
+                "https://registry.example/registry.json",
+                TrustPolicy: trustPolicy);
             CacheRoot = Path.Combine(temporaryDirectory.Path, "cache");
-            Responses = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            var responses = new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 [Source.Location] = Encoding.UTF8.GetBytes(indexJson),
                 ["https://registry.example/packages/test.console.windows-1.0.0.zip"] =
                     archiveBytes,
             };
+            if (signatureBytes is not null)
+            {
+                responses[$"{Source.Location}.sig.json"] = signatureBytes;
+            }
+
+            Responses = responses;
         }
 
         public RegistrySource Source { get; }
@@ -346,6 +497,28 @@ public sealed class RegistryCatalogTests
             package.Dispose();
             temporaryDirectory.Dispose();
         }
+    }
+
+    private static string CreateSignatureJson(
+        byte[] indexBytes,
+        RSA rsa,
+        string publisherId,
+        string keyId)
+    {
+        var hash = SHA256.HashData(indexBytes);
+        var signature = rsa.SignHash(
+            hash,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        return JsonSerializer.Serialize(new
+        {
+            schema_version = RegistrySignatureVerifier.SupportedSchemaVersion,
+            publisher_id = publisherId,
+            key_id = keyId,
+            algorithm = RegistrySignatureVerifier.RsaPkcs1Sha256,
+            index_sha256 = Convert.ToHexStringLower(hash),
+            signature = Convert.ToBase64String(signature),
+        });
     }
 
     private sealed class MappedHttpHandler : HttpMessageHandler

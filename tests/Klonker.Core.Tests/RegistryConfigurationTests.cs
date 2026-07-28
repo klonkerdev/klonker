@@ -37,7 +37,13 @@ public sealed class RegistryConfigurationTests
         Assert.Contains(
             result.Value.Sources,
             source => source.Kind == RegistrySourceKind.Remote &&
-                      source.Location == "https://registry.example/registry.json");
+                      source.Location == "https://registry.example/registry.json" &&
+                      source.TrustPolicy?.RequireSignature == true &&
+                      source.TrustPolicy.PublisherId ==
+                          RegistryConfigurationStore.OfficialPublisherId &&
+                      source.TrustPolicy.Keys.Any(key =>
+                          key.KeyId ==
+                              RegistryConfigurationStore.OfficialSigningKeyId));
     }
 
     [Fact]
@@ -103,5 +109,28 @@ public sealed class RegistryConfigurationTests
         Assert.Contains(
             result.Issues,
             issue => issue.Code == "registry.configuration_kind_invalid");
+    }
+
+    [Fact]
+    public void Load_NullSourceArrayReturnsReadableError()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        File.WriteAllText(
+            Path.Combine(temporaryDirectory.Path, "registries.json"),
+            """
+            {
+              "schema_version": 0,
+              "offline": false,
+              "sources": null
+            }
+            """);
+        var store = new RegistryConfigurationStore(temporaryDirectory.Path);
+
+        var result = store.Load();
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "registry.configuration_sources_required");
     }
 }

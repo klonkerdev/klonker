@@ -1,0 +1,404 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Klonker.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="Klonker.Desktop.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        mc:Ignorable="d"
+        d:DesignWidth="940"
+        d:DesignHeight="760"
+        Width="940"
+        Height="760"
+        MinWidth="780"
+        MinHeight="620"
+        CanResize="True"
+        Icon="avares://Klonker.Desktop/Assets/klonker.png"
+        Title="Klonker settings"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16"
+        RowDefinitions="Auto,*,Auto"
+        RowSpacing="12">
+    <StackPanel>
+      <TextBlock Classes="eyebrow"
+                 Text="KLONKER" />
+      <TextBlock Margin="0,4,0,0"
+                 Classes="title"
+                 FontSize="22"
+                 Text="Settings" />
+      <TextBlock Margin="0,4,0,0"
+                 Classes="muted"
+                 Text="Manage local preferences, registry trust, diagnostics, and app data." />
+    </StackPanel>
+
+    <Border Grid.Row="1"
+            Classes="panel"
+            Padding="8">
+      <TabControl>
+        <TabItem Header="Registries">
+          <Grid Margin="12"
+                RowDefinitions="Auto,*"
+                RowSpacing="10">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="10">
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold"
+                           Text="Registry sources" />
+                <TextBlock Margin="0,3,0,0"
+                           Classes="muted"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Text="Remote sources must use HTTPS. Signature trust is pinned locally and can hold multiple keys during rotation." />
+              </StackPanel>
+              <StackPanel Grid.Column="1"
+                          Orientation="Horizontal"
+                          Spacing="8">
+                <CheckBox VerticalAlignment="Center"
+                          Content="Offline mode"
+                          IsChecked="{Binding Offline, Mode=TwoWay}" />
+                <Button Classes="ghost"
+                        Command="{Binding AddRegistryCommand}"
+                        Content="Add source" />
+              </StackPanel>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding RegistrySources}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:RegistrySourceEditorViewModel">
+                    <Border Margin="0,0,0,10"
+                            Padding="12"
+                            Background="{StaticResource InputBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="7">
+                      <StackPanel Spacing="9">
+                        <Grid ColumnDefinitions="*,150,Auto,Auto"
+                              ColumnSpacing="8">
+                          <TextBox Classes="field"
+                                   PlaceholderText="Display name"
+                                   Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                          <ComboBox Grid.Column="1"
+                                    Classes="field"
+                                    ItemsSource="{x:Static vm:RegistrySourceEditorViewModel.KindOptions}"
+                                    SelectedItem="{Binding Kind, Mode=TwoWay}" />
+                          <CheckBox Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Content="Enabled"
+                                    IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+                          <Button Grid.Column="3"
+                                  Classes="ghost"
+                                  Tag="{Binding}"
+                                  Click="OnRemoveRegistryClicked"
+                                  Content="Remove" />
+                        </Grid>
+
+                        <TextBox Classes="field"
+                                 PlaceholderText="HTTPS index URL or local registry.json path"
+                                 Text="{Binding Location, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Border Padding="10"
+                                Background="{StaticResource SurfaceRaisedBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                IsVisible="{Binding IsRemote}">
+                          <StackPanel Spacing="8">
+                            <CheckBox Content="Require a trusted publisher signature"
+                                      IsChecked="{Binding RequireSignature, Mode=TwoWay}" />
+                            <TextBox Classes="field"
+                                     PlaceholderText="Publisher ID (for example org.example.templates)"
+                                     Text="{Binding PublisherId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock VerticalAlignment="Center"
+                                         Classes="muted"
+                                         FontSize="11"
+                                         Text="Trusted RSA publisher keys (active and revoked history)" />
+                              <Button Grid.Column="1"
+                                      Classes="ghost"
+                                      Tag="{Binding}"
+                                      Click="OnAddTrustedKeyClicked"
+                                      Content="Add key" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding TrustedKeys}">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:TrustedPublisherKeyViewModel">
+                                  <Border Margin="0,0,0,7"
+                                          Padding="9"
+                                          BorderBrush="{StaticResource BorderBrush}"
+                                          BorderThickness="1"
+                                          CornerRadius="5">
+                                    <Grid RowDefinitions="Auto,Auto"
+                                          ColumnDefinitions="180,*,Auto,Auto"
+                                          RowSpacing="7"
+                                          ColumnSpacing="7">
+                                      <TextBox Classes="field"
+                                               PlaceholderText="Key ID"
+                                               Text="{Binding KeyId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                      <TextBlock Grid.Column="1"
+                                                 VerticalAlignment="Center"
+                                                 Classes="muted"
+                                                 FontSize="11"
+                                                 Text="{Binding Algorithm}" />
+                                      <CheckBox Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                Content="Revoked"
+                                                IsChecked="{Binding IsRevoked, Mode=TwoWay}" />
+                                      <Button Grid.Column="3"
+                                              Classes="ghost"
+                                              Tag="{Binding}"
+                                              Click="OnRemoveTrustedKeyClicked"
+                                              Content="Remove" />
+                                      <TextBox Grid.Row="1"
+                                               Grid.ColumnSpan="4"
+                                               Classes="field"
+                                               FontFamily="Cascadia Mono,Consolas"
+                                               FontSize="10"
+                                               PlaceholderText="Base64 SubjectPublicKeyInfo"
+                                               Text="{Binding PublicKeySpki, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+                                  </Border>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Appearance">
+          <StackPanel Margin="18"
+                      Spacing="14">
+            <TextBlock Classes="title"
+                       Text="Appearance" />
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       Text="Follow Windows or choose a fixed light or dark palette. The change is applied when settings are saved." />
+            <Grid MaxWidth="520"
+                  HorizontalAlignment="Left"
+                  ColumnDefinitions="180,*"
+                  ColumnSpacing="12">
+              <TextBlock VerticalAlignment="Center"
+                         Text="Color mode" />
+              <ComboBox Grid.Column="1"
+                        Classes="field"
+                        ItemsSource="{Binding AppearanceOptions}"
+                        SelectedItem="{Binding Appearance, Mode=TwoWay}" />
+            </Grid>
+          </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Diagnostics">
+          <StackPanel Margin="18"
+                      Spacing="14">
+            <TextBlock Classes="title"
+                       Text="Debugging and logs" />
+            <TextBlock Classes="muted"
+                       TextWrapping="Wrap"
+                       Text="Diagnostic logging is opt-in. Logs contain app events and error summaries, never generated project contents." />
+            <CheckBox Content="Enable local diagnostic logging"
+                      IsChecked="{Binding DiagnosticLoggingEnabled, Mode=TwoWay}" />
+            <Grid MaxWidth="520"
+                  HorizontalAlignment="Left"
+                  ColumnDefinitions="180,*"
+                  ColumnSpacing="12">
+              <TextBlock VerticalAlignment="Center"
+                         Text="Log level" />
+              <ComboBox Grid.Column="1"
+                        Classes="field"
+                        ItemsSource="{Binding DiagnosticLogLevelOptions}"
+                        SelectedItem="{Binding DiagnosticLogLevel, Mode=TwoWay}" />
+            </Grid>
+            <Border Classes="inset"
+                    MaxWidth="760"
+                    HorizontalAlignment="Stretch"
+                    Padding="10">
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold"
+                           Text="Log file" />
+                <TextBlock Margin="0,4,0,0"
+                           Classes="muted"
+                           FontFamily="Cascadia Mono,Consolas"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="{Binding DiagnosticLogPath}" />
+              </StackPanel>
+            </Border>
+            <Button Classes="ghost"
+                    HorizontalAlignment="Left"
+                    Command="{Binding ClearDiagnosticLogCommand}"
+                    Content="Clear diagnostic log" />
+          </StackPanel>
+        </TabItem>
+
+        <TabItem Header="System">
+          <StackPanel Margin="18"
+                      Spacing="14">
+            <TextBlock Classes="title"
+                       Text="System behavior" />
+            <Border Classes="inset"
+                    MaxWidth="760"
+                    HorizontalAlignment="Stretch"
+                    Padding="12">
+              <StackPanel>
+                <CheckBox Content="Allow active prerequisite probes"
+                          IsChecked="{Binding PrerequisiteProbesEnabled, Mode=TwoWay}" />
+                <TextBlock Margin="24,4,0,0"
+                           Classes="muted"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="When enabled, Klonker can inspect PATH and known local installation folders only after you click Check prerequisites. It never installs tools or executes template commands." />
+              </StackPanel>
+            </Border>
+            <Grid MaxWidth="520"
+                  HorizontalAlignment="Left"
+                  ColumnDefinitions="230,*"
+                  ColumnSpacing="12">
+              <TextBlock VerticalAlignment="Center"
+                         Text="Registry timeout (seconds, next launch)" />
+              <NumericUpDown Grid.Column="1"
+                             Classes="field"
+                             Minimum="5"
+                             Maximum="120"
+                             Increment="5"
+                             Value="{Binding RegistryDownloadTimeoutSeconds, Mode=TwoWay}" />
+            </Grid>
+            <Border Classes="inset"
+                    MaxWidth="760"
+                    HorizontalAlignment="Stretch"
+                    Padding="10">
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold"
+                           Text="Application data" />
+                <TextBlock Margin="0,4,0,0"
+                           Classes="muted"
+                           FontFamily="Cascadia Mono,Consolas"
+                           FontSize="11"
+                           TextWrapping="Wrap"
+                           Text="{Binding ApplicationDataPath}" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Local data">
+          <ScrollViewer>
+            <StackPanel Margin="18"
+                        Spacing="12">
+              <TextBlock Classes="title"
+                         Text="Reset local data" />
+              <TextBlock Classes="muted"
+                         TextWrapping="Wrap"
+                         Text="These actions affect only Klonker's app-local cache and preferences. Generated projects are never touched." />
+              <Border Classes="inset"
+                      Padding="12">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Registry cache" />
+                    <TextBlock Margin="0,3,0,0"
+                               Classes="muted"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Text="{Binding CachePath}" />
+                  </StackPanel>
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Command="{Binding ClearCacheCommand}"
+                          Content="Clear cache" />
+                </Grid>
+              </Border>
+              <Border Classes="inset"
+                      Padding="12">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Favorites database" />
+                    <TextBlock Margin="0,3,0,0"
+                               Classes="muted"
+                               FontSize="11"
+                               Text="Remove every app-local favorite without changing packages." />
+                  </StackPanel>
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Command="{Binding ClearFavoritesCommand}"
+                          Content="Clear favorites" />
+                </Grid>
+              </Border>
+              <Border Classes="inset"
+                      Padding="12">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Registry sources" />
+                    <TextBlock Margin="0,3,0,0"
+                               Classes="muted"
+                               FontSize="11"
+                               Text="Restore first-run local and official source configuration." />
+                  </StackPanel>
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Command="{Binding ResetRegistryConfigurationCommand}"
+                          Content="Reset registries" />
+                </Grid>
+              </Border>
+              <Border Classes="inset"
+                      Padding="12">
+                <Grid ColumnDefinitions="*,Auto"
+                      ColumnSpacing="12">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Application preferences" />
+                    <TextBlock Margin="0,3,0,0"
+                               Classes="muted"
+                               FontSize="11"
+                               Text="Restore appearance, diagnostics, probes, and timeout defaults." />
+                  </StackPanel>
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Command="{Binding ResetApplicationSettingsCommand}"
+                          Content="Reset settings" />
+                </Grid>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+      </TabControl>
+    </Border>
+
+    <Grid Grid.Row="2"
+          ColumnDefinitions="*,Auto,Auto"
+          ColumnSpacing="8">
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock Classes="muted"
+                   FontSize="12"
+                   Text="{Binding StatusMessage}" />
+        <TextBlock Margin="0,3,0,0"
+                   Foreground="{StaticResource ErrorBrush}"
+                   FontSize="11"
+                   IsVisible="{Binding HasError}"
+                   TextWrapping="Wrap"
+                   Text="{Binding ErrorMessage}" />
+      </StackPanel>
+      <Button Grid.Column="1"
+              Classes="ghost"
+              Click="OnCloseClicked"
+              Content="Close" />
+      <Button Grid.Column="2"
+              Classes="primary"
+              Command="{Binding SaveCommand}"
+              Content="Save settings" />
+    </Grid>
+  </Grid>
+</Window>

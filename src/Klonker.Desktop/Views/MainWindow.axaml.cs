@@ -6,6 +6,10 @@ namespace Klonker.Desktop.Views;
 
 public partial class MainWindow : Window
 {
+    private SettingsWindow? settingsWindow;
+
+    public Func<SettingsWindow>? SettingsWindowFactory { get; set; }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -37,6 +41,32 @@ public partial class MainWindow : Window
     private void OnMinimizeClicked(object? sender, RoutedEventArgs eventArgs)
     {
         WindowState = WindowState.Minimized;
+    }
+
+    private async void OnSettingsClicked(
+        object? sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (settingsWindow is not null)
+        {
+            settingsWindow.Activate();
+            return;
+        }
+
+        settingsWindow = SettingsWindowFactory?.Invoke();
+        if (settingsWindow is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await settingsWindow.ShowDialog(this);
+        }
+        finally
+        {
+            settingsWindow = null;
+        }
     }
 
     private void OnMaximizeClicked(object? sender, RoutedEventArgs eventArgs)

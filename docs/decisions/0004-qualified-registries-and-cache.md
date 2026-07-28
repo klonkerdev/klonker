@@ -22,5 +22,7 @@ network requests and requires existing valid cache entries.
 
 Multiple registries remain distinct and cache paths do not depend on
 publisher-controlled names. Corrupt downloads are rejected and cached packages
-support offline startup. Checksums provide integrity but not publisher
-authentication, so signatures and trust policy remain separate future work.
+support offline startup. Checksums remain package-integrity controls. Detached
+index signatures now provide the separate authentication layer: each source
+can pin a publisher and multiple active/revoked RSA keys in local
+configuration, and signature-required indexes are verified before caching.

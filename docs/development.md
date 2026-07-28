@@ -40,7 +40,8 @@ Scripts:
 - `eng/get-package-integrity.ps1`: calculate the canonical digest/size for an
   editable local package directory.
 - `eng/pack-registry.ps1`: discover hierarchical namespace/package/variant
-  TOML sources and create deterministic ZIPs plus registry version 1 output.
+  TOML sources and create deterministic ZIPs, registry version 1,
+  generated Markdown/JSON catalogs, and an optional detached signature.
 
 The main repository's `Nightly Build` workflow runs validation on every push
 to `main`, publishes Desktop as a self-contained single-file Windows x64
@@ -67,7 +68,10 @@ On first startup, Desktop creates:
 
 ```text
 %LOCALAPPDATA%\Klonker\registries.json
+%LOCALAPPDATA%\Klonker\settings.json
+%LOCALAPPDATA%\Klonker\favorites.json
 %LOCALAPPDATA%\Klonker\cache\
+%LOCALAPPDATA%\Klonker\logs\
 ```
 
 `DevelopmentSampleRegistryLocator` walks upward from `AppContext.BaseDirectory`
@@ -75,10 +79,10 @@ and the current directory looking for `samples/local-registry/registry.json`;
 when found, its absolute path is written as the first local source. The Core
 library never contains this repository path.
 
-Edit `registries.json` to add absolute or configuration-relative local index
-paths and HTTPS remote index URLs. Set `offline` to `true` to prohibit HTTP and
-use only validated cache entries. New configurations include the canonical
-official index at
+Use the in-app Settings window to add local index paths or HTTPS remote index
+URLs, configure offline mode, and pin publisher keys. The JSON files remain
+inspectable for diagnostics but normally should not be edited by hand. New
+configurations include the canonical signed official index at
 `https://raw.githubusercontent.com/klonkerdev/registry/main/dist/registry.json`.
 To test a staging endpoint before the first launch, override it:
 
@@ -88,8 +92,8 @@ $env:KLONKER_OFFICIAL_REGISTRY_URL =
 .\eng\run.ps1
 ```
 
-Once `registries.json` exists, edit it directly; the environment variable does
-not overwrite user configuration. See `docs/registry-format-v1.md` and
+Once `registries.json` exists, the environment variable does not overwrite
+user configuration. See `docs/registry-format-v1.md` and
 `samples/registry-configuration.example.json`.
 
 If the app reports that samples cannot be found, run it from a repository
@@ -117,8 +121,12 @@ the diff.
 4. Add one matching object to `samples/local-registry/registry.json`, including
    the reported `package_sha256` and `package_size_bytes`.
 5. Keep registry and manifest identity/version fields identical.
-6. Add parser, planning, expected-tree, and expected-content tests.
-7. Run `eng/validate.ps1`.
+6. Run `eng/validate.ps1`. It discovers every sample registry and validates
+   every referenced package without a package-specific branch.
+
+Add focused behavioral tests only when the format, security boundary,
+rendering behavior, or generator behavior changes. Adding another data-only
+sample does not require a special test case.
 
 Development samples must remain deterministic and must not require network
 access or external build tools in Klonker tests.

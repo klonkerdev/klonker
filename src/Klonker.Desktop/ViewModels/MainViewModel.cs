@@ -17,6 +17,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     private readonly ITemplateCatalog? catalog;
     private readonly IProjectGenerationService? generationService;
     private readonly IDestinationPicker? destinationPicker;
+    private readonly IFavoriteStore? favoriteStore;
+    private readonly AppSettingsStore? appSettingsStore;
+    private readonly IPrerequisiteProbeService? prerequisiteProbeService;
+    private readonly AppDiagnosticLog? diagnosticLog;
+    private bool prerequisiteProbesEnabled;
     private CancellationTokenSource? catalogLoadCancellation;
     private CancellationTokenSource? generationCancellation;
 
@@ -35,12 +40,20 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public MainViewModel(
         ITemplateCatalog catalog,
         IProjectGenerationService? generationService = null,
-        IDestinationPicker? destinationPicker = null)
+        IDestinationPicker? destinationPicker = null,
+        IFavoriteStore? favoriteStore = null,
+        AppSettingsStore? appSettingsStore = null,
+        IPrerequisiteProbeService? prerequisiteProbeService = null,
+        AppDiagnosticLog? diagnosticLog = null)
         : this()
     {
         this.catalog = catalog;
         this.generationService = generationService;
         this.destinationPicker = destinationPicker;
+        this.favoriteStore = favoriteStore;
+        this.appSettingsStore = appSettingsStore;
+        this.prerequisiteProbeService = prerequisiteProbeService;
+        this.diagnosticLog = diagnosticLog;
     }
 
     public ObservableCollection<TemplateListItemViewModel> Templates { get; } = [];
@@ -72,6 +85,16 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public bool HasSelectedTemplate => SelectedTemplate is not null;
 
     public bool HasPrerequisites => Prerequisites.Count > 0;
+
+    public bool CanProbePrerequisites =>
+        HasPrerequisites &&
+        prerequisiteProbesEnabled &&
+        prerequisiteProbeService is not null &&
+        !IsProbingPrerequisites;
+
+    public string PrerequisiteProbeConsentText => prerequisiteProbesEnabled
+        ? "Checks inspect PATH and known folders only after you click; no tools are installed or executed."
+        : "Active checks are disabled. Enable prerequisite probes in Settings to consent.";
 
     public bool HasCatalogNotice => !string.IsNullOrWhiteSpace(CatalogNotice);
 
@@ -159,6 +182,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     public partial bool IsGenerating { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanProbePrerequisites))]
+    public partial bool IsProbingPrerequisites { get; set; }
+
+    [ObservableProperty]
     public partial string DestinationPath { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -177,6 +204,61 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         var cancellation = new CancellationTokenSource();
         catalogLoadCancellation = cancellation;
         CatalogLoadTask = LoadCoreAsync(cancellation);
+    }
+
+    public void ToggleFavorite(TemplateListItemViewModel template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+
+        var nextValue = !template.IsFavorite;
+        if (favoriteStore is null)
+        {
+            template.IsFavorite = nextValue;
+            return;
+        }
+
+        var saved = favoriteStore.SetFavorite(
+            template.FavoriteIdentity,
+            nextValue);
+        if (!saved.IsSuccess)
+        {
+            ErrorMessage = string.Join(
+                Environment.NewLine,
+                saved.Issues.Select(issue => issue.Message));
+            StatusMessage = "Favorite could not be saved";
+            return;
+        }
+
+        template.IsFavorite = nextValue;
+        StatusMessage = nextValue
+            ? $"Favorited {template.VariantDisplayName}"
+            : $"Removed {template.VariantDisplayName} from favorites";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanProbePrerequisites))]
+    private async Task ProbePrerequisitesAsync()
+    {
+        if (prerequisiteProbeService is null)
+        {
+            return;
+        }
+
+        IsProbingPrerequisites = true;
+        StatusMessage = "Checking prerequisites with consented read-only probes…";
+        try
+        {
+            foreach (var prerequisite in Prerequisites)
+            {
+                prerequisite.ProbeResult =
+                    await prerequisiteProbeService.ProbeAsync(prerequisite.Id);
+            }
+
+            StatusMessage = "Prerequisite checks complete";
+        }
+        finally
+        {
+            IsProbingPrerequisites = false;
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanConfirmPackage))]
@@ -360,6 +442,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             if (!result.Succeeded)
             {
                 ErrorMessage = result.Message;
+                diagnosticLog?.Write(
+                    DiagnosticLogLevel.Error,
+                    "generation.failed",
+                    result.Message,
+                    result.DiagnosticException);
             }
         }
         catch (OperationCanceledException)
@@ -455,9 +542,38 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             }
 
             CatalogConfigurationPath = result.Value!.ConfigurationPath;
+            var appSettings = appSettingsStore?.Load();
+            prerequisiteProbesEnabled =
+                appSettings?.IsSuccess == true &&
+                appSettings.Value!.PrerequisiteProbesEnabled;
+            OnPropertyChanged(nameof(CanProbePrerequisites));
+            OnPropertyChanged(nameof(PrerequisiteProbeConsentText));
+            ProbePrerequisitesCommand.NotifyCanExecuteChanged();
+            var favoriteIdentities = Array.Empty<string>();
+            if (favoriteStore is not null)
+            {
+                var favorites = favoriteStore.Load();
+                if (favorites.IsSuccess)
+                {
+                    favoriteIdentities = favorites.Value!.TemplateIdentities.ToArray();
+                }
+                else
+                {
+                    CatalogNotice = string.Join(
+                        Environment.NewLine,
+                        favorites.Issues.Select(issue => issue.Message));
+                }
+            }
+
             foreach (var template in result.Value.Templates)
             {
-                Templates.Add(new TemplateListItemViewModel(template));
+                var favoriteIdentity =
+                    $"{template.RegistryId}:{template.Entry.TemplateId}";
+                Templates.Add(new TemplateListItemViewModel(
+                    template,
+                    favoriteIdentities.Contains(
+                        favoriteIdentity,
+                        StringComparer.Ordinal)));
             }
 
             foreach (var packageGroup in Templates
@@ -478,9 +594,18 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
                 .Select(issue => issue.Message)
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
-            CatalogNotice = notices.Length == 0
+            var catalogNotices = new List<string>();
+            if (!string.IsNullOrWhiteSpace(CatalogNotice))
+            {
+                catalogNotices.Add(CatalogNotice);
+            }
+
+            catalogNotices.AddRange(notices);
+            CatalogNotice = catalogNotices.Count == 0
                 ? null
-                : string.Join(Environment.NewLine, notices);
+                : string.Join(
+                    Environment.NewLine,
+                    catalogNotices.Distinct(StringComparer.Ordinal));
 
             if (Packages.Count == 0)
             {
@@ -510,6 +635,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             DiagnosticException = exception;
             ErrorMessage = "Klonker could not load the configured template registries.";
             StatusMessage = "Template loading failed";
+            diagnosticLog?.Write(
+                DiagnosticLogLevel.Error,
+                "catalog.load_failed",
+                ErrorMessage,
+                exception);
         }
         catch (OperationCanceledException)
         {
@@ -573,6 +703,9 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
         }
 
         OnPropertyChanged(nameof(HasPrerequisites));
+        OnPropertyChanged(nameof(CanProbePrerequisites));
+        OnPropertyChanged(nameof(PrerequisiteProbeConsentText));
+        ProbePrerequisitesCommand.NotifyCanExecuteChanged();
         OpenConfigurationCommand.NotifyCanExecuteChanged();
         NotifyCommandStates();
     }
@@ -605,6 +738,11 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
     partial void OnIsGeneratingChanged(bool value)
     {
         CancelGenerationCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsProbingPrerequisitesChanged(bool value)
+    {
+        ProbePrerequisitesCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnDestinationPathChanged(string value)
@@ -790,6 +928,10 @@ public sealed partial class MainViewModel : ViewModelBase, IDisposable
             ? fallbackMessage
             : string.Join(Environment.NewLine, errors);
         StatusMessage = fallbackMessage;
+        diagnosticLog?.Write(
+            DiagnosticLogLevel.Error,
+            "validation.failed",
+            ErrorMessage);
     }
 
     private void DisposePackages()

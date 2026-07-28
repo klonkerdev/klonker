@@ -1,8 +1,10 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using Klonker.Core.Templates;
+using Klonker.Desktop.Services;
 
 namespace Klonker.Desktop.ViewModels;
 
-public sealed class PrerequisiteViewModel
+public sealed partial class PrerequisiteViewModel : ViewModelBase
 {
     public PrerequisiteViewModel(TemplatePrerequisite prerequisite)
     {
@@ -17,4 +19,16 @@ public sealed class PrerequisiteViewModel
 
     public string RequiredFor =>
         $"Needed to {Prerequisite.RequiredFor} the generated project";
+
+    public string Id => Prerequisite.Id;
+
+    public bool HasProbeResult => ProbeResult is not null;
+
+    public bool ProbeFound =>
+        ProbeResult?.State == PrerequisiteProbeState.Found;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasProbeResult))]
+    [NotifyPropertyChangedFor(nameof(ProbeFound))]
+    public partial PrerequisiteProbeResult? ProbeResult { get; set; }
 }

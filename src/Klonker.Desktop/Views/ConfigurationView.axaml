@@ -169,7 +169,13 @@
                            Classes="muted"
                            FontSize="11"
                            TextWrapping="Wrap"
-                           Text="Klonker reports these requirements but does not install or run them." />
+                           Text="{Binding PrerequisiteProbeConsentText}" />
+                <Button Margin="0,0,0,9"
+                        Classes="ghost"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Command="{Binding ProbePrerequisitesCommand}"
+                        Content="Check prerequisites" />
                 <ItemsControl ItemsSource="{Binding Prerequisites}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:PrerequisiteViewModel">
@@ -197,6 +203,15 @@
                                      FontSize="11"
                                      TextWrapping="Wrap"
                                      Text="{Binding Description}" />
+                          <Border Margin="0,7,0,0"
+                                  Padding="7,5"
+                                  Background="{StaticResource SurfaceRaisedBrush}"
+                                  CornerRadius="4"
+                                  IsVisible="{Binding HasProbeResult}">
+                            <TextBlock FontSize="10"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding ProbeResult.Message}" />
+                          </Border>
                         </StackPanel>
                       </Border>
                     </DataTemplate>

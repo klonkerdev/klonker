@@ -96,8 +96,14 @@ public static partial class TemplatePackageLoader
         var sourceLicense = GetString(table, "source_license", issues);
         var logo = GetOptionalNonEmptyString(table, "logo", issues);
         var tags = ParseTags(table, issues);
-        var isFavorite = GetOptionalBoolean(table, "favorite", issues) ?? false;
         var prerequisites = ParsePrerequisites(table, issues);
+
+        if (table.ContainsKey("favorite"))
+        {
+            issues.Add(Error(
+                "manifest.favorite_forbidden",
+                "Property 'favorite' is app-local state and cannot be declared by a template package."));
+        }
 
         if (schemaVersion is not null && schemaVersion != SupportedSchemaVersion)
         {
@@ -134,7 +140,6 @@ public static partial class TemplatePackageLoader
             parameters,
             logo,
             tags,
-            isFavorite,
             prerequisites,
             language);
     }
@@ -565,27 +570,6 @@ public static partial class TemplatePackageLoader
         issues.Add(Error(
             "manifest.property_type",
             $"{PropertyName(property, context)} must be a boolean."));
-        return null;
-    }
-
-    private static bool? GetOptionalBoolean(
-        TomlTable table,
-        string property,
-        List<ValidationIssue> issues)
-    {
-        if (!table.TryGetValue(property, out var value))
-        {
-            return null;
-        }
-
-        if (value is bool boolean)
-        {
-            return boolean;
-        }
-
-        issues.Add(Error(
-            "manifest.property_type",
-            $"Property '{property}' must be a boolean."));
         return null;
     }
 

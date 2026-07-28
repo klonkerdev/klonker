@@ -42,7 +42,6 @@ Optional presentation metadata:
 ```toml
 logo = "template-logo.png"
 tags = ["cli", "native", "starter", "cpp"]
-favorite = true
 ```
 
 `logo` is a package-root-relative PNG, JPEG, or WebP path. It receives the
@@ -56,11 +55,12 @@ Each trimmed tag contains 1–40 visible characters. Tags are descriptive
 catalog metadata: arbitrary names such as `graphics`, `gamedev`, `gof2`, and
 `modding` do not affect rendering or grant capabilities.
 
-`favorite` is an optional boolean defaulting to `false`. It marks the initial
-favorite state; the current Desktop UI permits an in-memory user override but
-does not persist that override yet.
+Favorite state is deliberately not manifest metadata. Declaring `favorite`
+is a validation error because registries cannot choose or persist user
+preferences. Desktop stores favorite template identities only in the user's
+app-local `favorites.json`.
 
-Optional display-only prerequisites describe tools needed after Klonker has
+Optional prerequisites describe tools needed after Klonker has
 generated and detached the project:
 
 ```toml
@@ -74,7 +74,10 @@ required_for = "build"
 Each prerequisite requires `id`, `name`, `description`, and `required_for`.
 IDs use the same identifier shape as parameter IDs and must be unique.
 `required_for` is `build`, `run`, or `development`. Klonker displays this
-information but does not probe, install, or execute the prerequisite.
+information. When the user enables probe consent in Settings and explicitly
+clicks **Check prerequisites**, Desktop may inspect PATH or a host-owned list
+of known installation folders for recognized IDs. It never installs a tool,
+executes a prerequisite, or runs registry-provided commands.
 
 Each `[[parameters]]` table requires `id`, `type`, `label`, and `required`.
 `description`, `default`, and `validation` are optional. Parameter IDs must
@@ -156,7 +159,6 @@ language = "cpp"
 source_license = "MIT"
 logo = "template-logo.png"
 tags = ["cli", "native", "starter", "cpp"]
-favorite = true
 
 [[prerequisites]]
 id = "cmake"
