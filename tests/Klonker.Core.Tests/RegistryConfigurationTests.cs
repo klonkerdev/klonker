@@ -15,7 +15,7 @@ public sealed class RegistryConfigurationTests
     }
 
     [Fact]
-    public void Load_FirstRunCreatesUserConfigurationWithDevelopmentAndOfficialSources()
+    public void Load_ExplicitDevelopmentSeedCreatesDevelopmentAndOfficialSources()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var store = new RegistryConfigurationStore(
@@ -44,6 +44,92 @@ public sealed class RegistryConfigurationTests
                       source.TrustPolicy.Keys.Any(key =>
                           key.KeyId ==
                               RegistryConfigurationStore.OfficialSigningKeyId));
+    }
+
+    [Fact]
+    public void Load_NormalStartupSeedsOnlyOfficialSource()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var store = new RegistryConfigurationStore(
+            temporaryDirectory.Path,
+            RepositoryPaths.SampleRegistry,
+            "https://registry.example/registry.json",
+            seedDevelopmentRegistry: false);
+
+        var result = store.Load();
+
+        Assert.True(result.IsSuccess);
+        var source = Assert.Single(result.Value!.Sources);
+        Assert.Equal(RegistrySourceKind.Remote, source.Kind);
+        Assert.Equal("https://registry.example/registry.json", source.Location);
+    }
+
+    [Fact]
+    public void Load_NormalStartupRemovesExactLegacyDevelopmentSample()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var legacyStore = new RegistryConfigurationStore(
+            temporaryDirectory.Path,
+            RepositoryPaths.SampleRegistry,
+            "https://registry.example/registry.json");
+        Assert.True(legacyStore.Load().IsSuccess);
+
+        var currentStore = new RegistryConfigurationStore(
+            temporaryDirectory.Path,
+            RepositoryPaths.SampleRegistry,
+            "https://registry.example/registry.json",
+            seedDevelopmentRegistry: false);
+        var result = currentStore.Load();
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Value!.Sources);
+        Assert.DoesNotContain(
+            result.Value.Sources,
+            source => source.Kind == RegistrySourceKind.Local);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code ==
+                "registry.legacy_development_source_removed");
+        Assert.DoesNotContain(
+            "Development samples",
+            File.ReadAllText(result.Value.ConfigurationPath),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Load_NormalStartupPreservesExplicitlyRenamedDevelopmentRegistry()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var legacyStore = new RegistryConfigurationStore(
+            temporaryDirectory.Path,
+            RepositoryPaths.SampleRegistry,
+            "https://registry.example/registry.json");
+        var legacy = legacyStore.Load();
+        Assert.True(legacy.IsSuccess);
+        var renamedSources = legacy.Value!.Sources
+            .Select(source => source.Kind == RegistrySourceKind.Local
+                ? source with { Name = "My local test registry" }
+                : source);
+        Assert.True(legacyStore.Save(
+            offline: false,
+            sources: renamedSources).IsSuccess);
+
+        var currentStore = new RegistryConfigurationStore(
+            temporaryDirectory.Path,
+            RepositoryPaths.SampleRegistry,
+            "https://registry.example/registry.json",
+            seedDevelopmentRegistry: false);
+        var result = currentStore.Load();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value!.Sources.Length);
+        Assert.Contains(
+            result.Value.Sources,
+            source => source.Name == "My local test registry");
+        Assert.DoesNotContain(
+            result.Issues,
+            issue => issue.Code ==
+                "registry.legacy_development_source_removed");
     }
 
     [Fact]

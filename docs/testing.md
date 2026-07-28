@@ -14,7 +14,7 @@
   validate schema/version behavior, qualified identity, directory digests,
   package SHA-256/size, safe ZIP extraction, online caching, cached-index
   fallback, detached publisher signatures, active/revoked trust keys, and
-  zero-network offline reuse.
+  mixed-revision publication retry, and zero-network offline reuse.
 - **Version policy:** multi-version identities, stable/prerelease ordering,
   exact pins, unavailable-pin warnings, and deterministic fallbacks.
 - **Module integration:** module manifest/slot validation, restricted

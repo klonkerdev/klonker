@@ -34,6 +34,7 @@ public sealed class RegistryConfigurationStore
     private readonly string applicationDataRoot;
     private readonly string? developmentRegistryPath;
     private readonly string? officialRegistryUrl;
+    private readonly bool seedDevelopmentRegistry;
 
     public string ApplicationDataRoot => applicationDataRoot;
 
@@ -45,12 +46,14 @@ public sealed class RegistryConfigurationStore
     public RegistryConfigurationStore(
         string applicationDataRoot,
         string? developmentRegistryPath = null,
-        string? officialRegistryUrl = null)
+        string? officialRegistryUrl = null,
+        bool seedDevelopmentRegistry = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationDataRoot);
         this.applicationDataRoot = Path.GetFullPath(applicationDataRoot);
         this.developmentRegistryPath = developmentRegistryPath;
         this.officialRegistryUrl = officialRegistryUrl;
+        this.seedDevelopmentRegistry = seedDevelopmentRegistry;
     }
 
     public static RegistryConfigurationStore CreateDefault()
@@ -65,7 +68,8 @@ public sealed class RegistryConfigurationStore
             DevelopmentSampleRegistryLocator.FindRegistryIndex(),
             string.IsNullOrWhiteSpace(configuredOfficialRegistryUrl)
                 ? OfficialRegistryUrl
-                : configuredOfficialRegistryUrl);
+                : configuredOfficialRegistryUrl,
+            seedDevelopmentRegistry: false);
     }
 
     public OperationResult<RegistryConfigurationSnapshot> Load()
@@ -99,6 +103,23 @@ public sealed class RegistryConfigurationStore
             }
 
             var issues = new List<ValidationIssue>();
+            if (RemoveLegacyDevelopmentSource(
+                    dto,
+                    configurationPath))
+            {
+                WriteAtomically(
+                    configurationPath,
+                    JsonSerializer.Serialize(dto, WriteOptions) +
+                    Environment.NewLine);
+                issues.Add(new ValidationIssue(
+                    ValidationSeverity.Information,
+                    "registry.legacy_development_source_removed",
+                    "The old automatically added development-samples registry " +
+                    "was removed. Development registries can be added explicitly " +
+                    "from Settings or the registry workspace wizard.",
+                    Path: configurationPath));
+            }
+
             if (dto.SchemaVersion != SupportedSchemaVersion)
             {
                 issues.Add(Error(
@@ -438,7 +459,8 @@ public sealed class RegistryConfigurationStore
     private void WriteInitialConfiguration(string configurationPath)
     {
         var sources = new List<SourceDto>();
-        if (!string.IsNullOrWhiteSpace(developmentRegistryPath))
+        if (seedDevelopmentRegistry &&
+            !string.IsNullOrWhiteSpace(developmentRegistryPath))
         {
             sources.Add(new SourceDto
             {
@@ -480,6 +502,65 @@ public sealed class RegistryConfigurationStore
         File.WriteAllText(
             configurationPath,
             JsonSerializer.Serialize(dto, WriteOptions) + Environment.NewLine);
+    }
+
+    private bool RemoveLegacyDevelopmentSource(
+        ConfigurationDto configuration,
+        string configurationPath)
+    {
+        if (seedDevelopmentRegistry ||
+            string.IsNullOrWhiteSpace(developmentRegistryPath) ||
+            configuration.Sources is null ||
+            !configuration.Sources.Any(source =>
+                string.Equals(source.Kind, "remote", StringComparison.Ordinal) &&
+                (string.Equals(
+                     source.PublisherId,
+                     OfficialPublisherId,
+                     StringComparison.Ordinal) ||
+                 string.Equals(
+                     source.Location,
+                     officialRegistryUrl,
+                     StringComparison.Ordinal))))
+        {
+            return false;
+        }
+
+        var expectedPath = Path.GetFullPath(developmentRegistryPath);
+        var configurationDirectory =
+            Path.GetDirectoryName(configurationPath)!;
+        return configuration.Sources.RemoveAll(source =>
+        {
+            if (!string.Equals(
+                    source.Name,
+                    "Development samples",
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    source.Kind,
+                    "local",
+                    StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(source.Location))
+            {
+                return false;
+            }
+
+            try
+            {
+                var sourcePath = Path.GetFullPath(
+                    source.Location,
+                    configurationDirectory);
+                return string.Equals(
+                    sourcePath,
+                    expectedPath,
+                    StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException or
+                    NotSupportedException or
+                    PathTooLongException)
+            {
+                return false;
+            }
+        }) > 0;
     }
 
     private static RegistryTrustPolicy? ParseTrustPolicy(

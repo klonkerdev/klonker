@@ -74,9 +74,11 @@ On first startup, Desktop creates:
 %LOCALAPPDATA%\Klonker\logs\
 ```
 
-`DevelopmentSampleRegistryLocator` walks upward from `AppContext.BaseDirectory`
-and the current directory looking for `samples/local-registry/registry.json`;
-when found, its absolute path is written as the first local source. The Core
+New configurations seed only the signed official registry. Development
+samples are never mixed into the normal catalog automatically; add the
+checked-in sample explicitly through Settings or the registry workspace
+wizard when it is useful. `DevelopmentSampleRegistryLocator` recognizes the
+exact old auto-added sample path solely for a one-time migration. The Core
 library never contains this repository path.
 
 Use the in-app Settings window to add local index paths or HTTPS remote index

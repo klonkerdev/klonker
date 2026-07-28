@@ -10,9 +10,10 @@ filesystem execution.
 
 `Klonker.Desktop` targets `net10.0`, references Core, and owns Avalonia views,
 CommunityToolkit view models, user registry configuration, native folder
-selection, and desktop-specific service adapters. Repository sample lookup is
-isolated in `DevelopmentSampleRegistryLocator`; no repository path exists in
-Core. `RegistryConfigurationStore` owns
+selection, and desktop-specific service adapters. Normal startup seeds only
+the signed official registry. Repository sample lookup remains isolated in
+`DevelopmentSampleRegistryLocator` for a narrow legacy-configuration
+migration; no repository path exists in Core. `RegistryConfigurationStore` owns
 `%LOCALAPPDATA%\Klonker\registries.json`; `FavoriteStore` and
 `AppSettingsStore` separately own `favorites.json` and `settings.json`.
 `ConfiguredTemplateCatalog` passes local/remote sources, publisher trust,

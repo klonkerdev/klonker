@@ -13,6 +13,7 @@ public sealed class RegistryCatalogService
     private const int MaximumIndexBytes = 5 * 1024 * 1024;
     private const int MaximumSignatureBytes = 64 * 1024;
     private const long MaximumPackageBytes = 128L * 1024 * 1024;
+    private const int MaximumSignedIndexDownloadAttempts = 3;
 
     private static readonly UTF8Encoding StrictUtf8 = new(
         encoderShouldEmitUTF8Identifier: false,
@@ -498,41 +499,34 @@ public sealed class RegistryCatalogService
 
         if (!offline)
         {
-            var downloaded = await DownloadIndexAsync(indexUri, cancellationToken)
-                .ConfigureAwait(false);
+            OperationResult<DownloadedIndex> downloaded;
             DownloadedSignature? downloadedSignature = null;
             ImmutableArray<ValidationIssue> signatureIssues = [];
-            if (downloaded.IsSuccess && trustPolicy?.RequireSignature == true)
+            if (trustPolicy?.RequireSignature == true)
             {
-                var signatureUri = GetSignatureUri(indexUri);
-                var signature = await DownloadSignatureAsync(
-                    signatureUri,
+                var signed = await DownloadSignedIndexAsync(
+                    indexUri,
+                    trustPolicy,
                     cancellationToken).ConfigureAwait(false);
-                if (!signature.IsSuccess)
+                if (signed.IsSuccess)
                 {
                     downloaded = new OperationResult<DownloadedIndex>(
-                        null,
-                        signature.Issues);
+                        signed.Value!.Index,
+                        []);
+                    downloadedSignature = signed.Value.Signature;
+                    signatureIssues = signed.Issues;
                 }
                 else
                 {
-                    var verified = RegistrySignatureVerifier.Verify(
-                        downloaded.Value!.Bytes,
-                        signature.Value!.Json,
-                        trustPolicy,
-                        signatureUri.AbsoluteUri);
-                    if (!verified.IsSuccess)
-                    {
-                        downloaded = new OperationResult<DownloadedIndex>(
-                            null,
-                            verified.Issues);
-                    }
-                    else
-                    {
-                        downloadedSignature = signature.Value;
-                        signatureIssues = verified.Issues;
-                    }
+                    downloaded = new OperationResult<DownloadedIndex>(
+                        null,
+                        signed.Issues);
                 }
+            }
+            else
+            {
+                downloaded = await DownloadIndexAsync(indexUri, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             if (downloaded.IsSuccess)
@@ -605,6 +599,79 @@ public sealed class RegistryCatalogService
                 ValidationSeverity.Information,
                 "registry.offline_cache",
                 "Offline mode is enabled; the cached registry index and packages are being used.")));
+    }
+
+    private async Task<OperationResult<DownloadedSignedIndex>>
+        DownloadSignedIndexAsync(
+            Uri indexUri,
+            RegistryTrustPolicy trustPolicy,
+            CancellationToken cancellationToken)
+    {
+        var refreshToken = Guid.NewGuid().ToString("N");
+        OperationResult<DownloadedSignedIndex>? lastFailure = null;
+        for (var attempt = 0;
+             attempt < MaximumSignedIndexDownloadAttempts;
+             attempt++)
+        {
+            var attemptIndexUri = attempt == 0
+                ? indexUri
+                : CreateRefreshUri(indexUri, refreshToken, attempt);
+            var signatureUri = GetSignatureUri(attemptIndexUri);
+            var signature = await DownloadSignatureAsync(
+                signatureUri,
+                cancellationToken).ConfigureAwait(false);
+            if (!signature.IsSuccess)
+            {
+                return new OperationResult<DownloadedSignedIndex>(
+                    null,
+                    signature.Issues);
+            }
+
+            var index = await DownloadIndexAsync(
+                attemptIndexUri,
+                cancellationToken).ConfigureAwait(false);
+            if (!index.IsSuccess)
+            {
+                return new OperationResult<DownloadedSignedIndex>(
+                    null,
+                    index.Issues);
+            }
+
+            var verified = RegistrySignatureVerifier.Verify(
+                index.Value!.Bytes,
+                signature.Value!.Json,
+                trustPolicy,
+                signatureUri.AbsoluteUri);
+            if (verified.IsSuccess)
+            {
+                var issues = verified.Issues;
+                if (attempt > 0)
+                {
+                    issues = issues.Add(new ValidationIssue(
+                        ValidationSeverity.Information,
+                        "registry.signature_pair_retried",
+                        "The registry changed while Klonker was refreshing it. " +
+                        "A consistent signed index was downloaded automatically."));
+                }
+
+                return new OperationResult<DownloadedSignedIndex>(
+                    new DownloadedSignedIndex(
+                        index.Value,
+                        signature.Value),
+                    issues);
+            }
+
+            lastFailure = new OperationResult<DownloadedSignedIndex>(
+                null,
+                verified.Issues);
+            if (!verified.Issues.Any(issue =>
+                    issue.Code == "registry.signature_hash_mismatch"))
+            {
+                return lastFailure;
+            }
+        }
+
+        return lastFailure!;
     }
 
     private async Task<OperationResult<DownloadedIndex>> DownloadIndexAsync(
@@ -1208,6 +1275,20 @@ public sealed class RegistryCatalogService
         return builder.Uri;
     }
 
+    private static Uri CreateRefreshUri(
+        Uri indexUri,
+        string refreshToken,
+        int attempt)
+    {
+        var builder = new UriBuilder(indexUri);
+        var existingQuery = builder.Query.TrimStart('?');
+        var refreshQuery = $"_klonker_refresh={refreshToken}-{attempt}";
+        builder.Query = string.IsNullOrEmpty(existingQuery)
+            ? refreshQuery
+            : $"{existingQuery}&{refreshQuery}";
+        return builder.Uri;
+    }
+
     private static ValidationIssue Error(string code, string message) =>
         new(ValidationSeverity.Error, code, message);
 
@@ -1223,6 +1304,10 @@ public sealed class RegistryCatalogService
     private sealed record DownloadedIndex(string Json, byte[] Bytes);
 
     private sealed record DownloadedSignature(string Json, byte[] Bytes);
+
+    private sealed record DownloadedSignedIndex(
+        DownloadedIndex Index,
+        DownloadedSignature Signature);
 
     private sealed record BytePayload(byte[] Bytes);
 }

@@ -160,7 +160,9 @@ becoming filesystem paths.
 
 Online behavior:
 
-1. fetch and validate a remote index;
+1. fetch and validate a remote index and its required signature as one
+   logical pair; if publication propagation briefly returns different
+   revisions, retry a cache-busted pair before using the validated cache;
 2. atomically replace its cached index only after validation;
 3. reuse a package archive only when size and SHA-256 still match;
 4. otherwise download to a temporary file, enforce limits, verify, then move;

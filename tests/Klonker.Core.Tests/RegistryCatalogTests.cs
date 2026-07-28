@@ -277,6 +277,33 @@ public sealed class RegistryCatalogTests
     }
 
     [Fact]
+    public async Task RemoteRegistry_RetriesMixedPublicationIndexAndSignature()
+    {
+        using var fixture = new RemoteRegistryFixture(signed: true);
+        using var handler = new PublicationRaceHttpHandler(
+            fixture.Source.Location,
+            fixture.Responses);
+        using var client = new HttpClient(handler);
+        var service = new RegistryCatalogService(client);
+
+        var result = await service.LoadAsync(
+            [fixture.Source],
+            new RegistryCatalogOptions(fixture.CacheRoot));
+
+        Assert.True(
+            result.IsSuccess,
+            string.Join(Environment.NewLine, result.Issues.Select(issue => issue.Message)));
+        Assert.True(handler.IndexRequestCount >= 2);
+        Assert.True(handler.SignatureRequestCount >= 2);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "registry.signature_pair_retried");
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "registry.signature_verified");
+    }
+
+    [Fact]
     public async Task RemoteRegistry_RequiredPublisherSignatureCannotBeOmitted()
     {
         using var fixture = new RemoteRegistryFixture(signed: true);
@@ -542,6 +569,57 @@ public sealed class RegistryCatalogTests
             if (!responses.TryGetValue(location, out var bytes))
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(bytes),
+            });
+        }
+    }
+
+    private sealed class PublicationRaceHttpHandler : HttpMessageHandler
+    {
+        private readonly string indexLocation;
+        private readonly IReadOnlyDictionary<string, byte[]> responses;
+
+        public PublicationRaceHttpHandler(
+            string indexLocation,
+            IReadOnlyDictionary<string, byte[]> responses)
+        {
+            this.indexLocation = indexLocation;
+            this.responses = responses;
+        }
+
+        public int IndexRequestCount { get; private set; }
+
+        public int SignatureRequestCount { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var location = request.RequestUri!.GetLeftPart(UriPartial.Path);
+            if (!responses.TryGetValue(location, out var bytes))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }
+
+            if (string.Equals(location, indexLocation, StringComparison.Ordinal))
+            {
+                IndexRequestCount++;
+                if (IndexRequestCount == 1)
+                {
+                    bytes = [.. bytes, (byte)'\n'];
+                }
+            }
+            else if (string.Equals(
+                         location,
+                         $"{indexLocation}.sig.json",
+                         StringComparison.Ordinal))
+            {
+                SignatureRequestCount++;
             }
 
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
